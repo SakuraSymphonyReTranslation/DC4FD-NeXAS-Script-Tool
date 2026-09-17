@@ -1,0 +1,40 @@
+# Bytecode and Game assets
+romfs/*
+!romfs/Custom Config/
+!romfs/Custom Config/system.datu8
+romfs_mod/
+DC4FD_Indo_Patch/
+DC4FD_Translation_Patch/
+DC4FD_Translation_Patch.zip
+*.rar
+*.binu8
+
+# Python cache & virtualenvs
+__pycache__/
+*.pyc
+*.pyo
+.env/
+venv/
+
+# Scratch & test outputs
+scratch/
+test_*.py
+test_*.json
+test_*.binu8
+check_continuation_name.py
+analyze_session.py
+extract_conv.py
+inspect_*.py
+
+# Third-party / external dumps
+Aquarium_tools/
+BijikTools-v0.6-beta2/
+BijikTools-v0.6-beta2.rar
+DC4fdswtich tool.rar
+
+# Release artifacts (created locally)
+release/
+*.zip
+!DC4FD_NeXAS_Script_Tool_v*.zip
+*.zip
+*.old
