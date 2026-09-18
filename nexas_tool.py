@@ -241,46 +241,91 @@ def clean_translated_entry(entry):
             if m2:
                 entry["message"] = m2.group(2).strip()
 
-def format_comu_bubble_text(text):
+def repair_broken_comu_words(text, prev_d=""):
+    """
+    Memperbaiki kata-kata yang terbelah akibat sisa kode @n dari naskah Jepang.
+    Misalnya: 'me@narik' -> 'menarik', 'pelari@nan' -> 'pelarian', 'menghala@nngi' -> 'menghalangi'.
+    """
+    if not text:
+        return text
+
+    # Daftar kata terbelah yang umum akibat tag @n Jepang yang tersisa
+    known_fixes = {
+        'me@narik': 'menarik',
+        'pelari@nan': 'pelarian',
+        'menghala@nngi': 'menghalangi',
+        'muncu@nl': 'muncul',
+        'merang@nkum': 'merangkum',
+        'ti@ndak': 'tidak',
+        'Wonder@nland': 'Wonderland',
+        'e@nvent': 'event',
+        'al@nat': 'alat',
+        'ke@nmari': 'kemari',
+        'ke sana ke@nmari': 'ke sana kemari',
+        'Miu@ntan': 'Miu-tan',
+        'Saki@nsan': 'Saki-san',
+        'ke@ndewasaan': 'kedewasaan',
+        'ber@nbeda': 'berbeda',
+        'gra@ntis': 'gratis',
+        'ca@nra': 'cara',
+    }
+    for broken, fixed in known_fixes.items():
+        text = text.replace(broken, fixed)
+
+    clean_prev = prev_d.replace('@d', '').replace('@k', '').strip() if prev_d else ""
+    def repl(match):
+        w1, w2 = match.group(1), match.group(2)
+        if clean_prev:
+            low_prev = clean_prev.lower()
+            if (w1 + w2).lower() in low_prev:
+                return w1 + w2
+            if (w1 + '-' + w2).lower() in low_prev:
+                return w1 + '-' + w2
+            if (w1 + 'n' + w2).lower() in low_prev:
+                return w1 + 'n' + w2
+        return w1 + ' ' + w2
+
+    return re.sub(r'([a-zA-Z\u00C0-\u024F]+)@n([a-zA-Z\u00C0-\u024F]+)', repl, text)
+
+def format_comu_bubble_text(text, prev_d=""):
     """
     Format khusus untuk teks percakapan di dalam balon obrolan (Comu / Phonechat).
-    Aturan cerdas untuk menjamin line spacing konsisten dan tidak ada baris yang meluber:
     
-    1. Pesan Pendek (<= 38 karakter):
-       - 1 baris tanpa @n.
-    
-    2. Pesan Sedang:
-       - Dibagi seimbang ke dalam 2 baris (jika masing-masing baris <= 40 karakter).
-    
-    3. Pesan Panjang:
-       - Dibagi secara merata dan proporsional ke dalam 3 baris dengan algoritma
-         optimasi lebar baris, memastikan setiap baris <= 40 karakter.
-       - Dengan panjang per baris yang seimbang dan tidak ada baris yang overflow,
-         engine NeXAS merender baris 1, 2, dan 3 dengan line pitch yang rata sempurna!
+    1. Memperbaiki kata yang terbelah akibat @n sisa Jepang.
+    2. Pesan Pendek (<= 44 kolom visual): tampilkan utuh dalam 1 baris tanpa @n.
+    3. Pesan Sedang: dibagi proporsional ke dalam 2 baris (tiap baris <= 44 kolom visual).
+    4. Pesan Panjang: dibagi proporsional ke dalam 3 baris (tiap baris <= 44 kolom visual).
     """
+    text = repair_broken_comu_words(text, prev_d)
     clean = text.replace('@d', '').replace('@k', '').replace('@n', ' ').replace('\n', ' ')
     clean = re.sub(r'\s+', ' ', clean).strip()
     words = clean.split(' ')
-    total_len = len(clean)
+    total_len = visible_length(clean)
 
-    if total_len <= 38 or len(words) <= 1:
+    if total_len <= 44 or len(words) <= 1:
         return clean
 
-    # Cek apakah bisa 2 baris seimbang (tiap baris <= 40 karakter)
+    # Cek apakah bisa 2 baris proporsional (tiap baris <= 44 kolom visual)
     best_2 = None
-    best_2_max = float('inf')
+    best_2_score = float('inf')
     for i in range(1, len(words)):
         l1 = ' '.join(words[:i])
         l2 = ' '.join(words[i:])
-        m = max(len(l1), len(l2))
-        if m < best_2_max:
-            best_2_max = m
-            best_2 = [l1, l2]
+        v1 = visible_length(l1)
+        v2 = visible_length(l2)
+        if v1 <= 44 and v2 <= 44:
+            penalty = 0
+            if len(words[i:]) == 1 and len(words[i]) <= 3:
+                penalty += 50
+            score = max(v1, v2) * 2 + abs(v1 - v2) + penalty
+            if score < best_2_score:
+                best_2_score = score
+                best_2 = [l1, l2]
 
-    if best_2_max <= 40:
+    if best_2:
         return f"{best_2[0]}@n{best_2[1]}"
 
-    # Jika tidak muat di 2 baris, bagi seimbang optimal ke dalam 3 baris
+    # Jika tidak muat di 2 baris, bagi ke dalam 3 baris (tiap baris <= 44 kolom visual)
     best_3 = None
     best_3_score = float('inf')
     for i in range(1, len(words) - 1):
@@ -288,18 +333,19 @@ def format_comu_bubble_text(text):
             l1 = ' '.join(words[:i])
             l2 = ' '.join(words[i:j])
             l3 = ' '.join(words[j:])
-            lens = [len(l1), len(l2), len(l3)]
-            penalty = sum(max(0, l - 40) * 100 for l in lens)
-            variance = max(lens) - min(lens)
-            score = max(lens) * 10 + variance + penalty
-            if score < best_3_score:
-                best_3_score = score
-                best_3 = [l1, l2, l3]
+            lens = [visible_length(l1), visible_length(l2), visible_length(l3)]
+            if all(l <= 44 for l in lens):
+                penalty = sum(max(0, l - 42) * 50 for l in lens)
+                variance = max(lens) - min(lens)
+                score = max(lens) * 10 + variance + penalty
+                if score < best_3_score:
+                    best_3_score = score
+                    best_3 = [l1, l2, l3]
 
     if best_3:
         return '@n'.join(best_3)
 
-    return clean
+    return apply_word_wrap(clean, max_len=42)
 
 # Gunakan implementasi algoritma dari script_auto_wrap jika tersedia
 try:
@@ -439,7 +485,8 @@ def insert_script(binu8_orig_path, json_path, binu8_out_path, word_wrap=56):
                 continue
             elif i > 0 and orig_strings[i-1].startswith('@d') and not orig_strings[i-1].startswith('@d@*stamp'):
                 entry = entries[entry_idx]
-                new_strings[i] = format_comu_bubble_text(entry.get("message", ""))
+                prev_d_msg = entries[entry_idx - 1].get("message", "") if entry_idx > 0 else ""
+                new_strings[i] = format_comu_bubble_text(entry.get("message", ""), prev_d=prev_d_msg)
                 prev_line_col = 0
                 entry_idx += 1
                 continue
