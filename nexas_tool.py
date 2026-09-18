@@ -214,9 +214,15 @@ def clean_translated_entry(entry):
     1. Memisahkan awalan nama 'Nama: 「...」' jika terselip di dalam message.
     2. Menghapus tag ruby sisa (@rd@・@).
     3. Menyisipkan spasi pemisah jika ada kata Latin yang menempel langsung di belakang tag (@h...Kata).
+    4. Menjaga dan menormalisasi format command stiker phonechat (@d@*stamp@<name>@).
     """
     msg = entry.get("message", "")
     if msg:
+        if '@*stamp' in msg or 'comu_stamp' in msg:
+            m_stamp = re.search(r'comu_stamp\w+', msg)
+            if m_stamp:
+                entry["message"] = f"@d@*stamp@{m_stamp.group(0)}@"
+            return
         msg = strip_ruby_tags(msg)
         msg = separate_tags_from_latin_words(msg)
         entry["message"] = msg
@@ -473,8 +479,25 @@ def insert_script(binu8_orig_path, json_path, binu8_out_path, word_wrap=56):
             if is_speaker_def and not is_msg:
                 continue
 
-            # 2. Penanganan Khusus Phonechat / Tablet (@d):
-            if s.startswith('@d') and not s.startswith('@d@*stamp'):
+            # 2. Penanganan Khusus Stiker Phonechat / Comu Stamp (@*stamp):
+            is_stamp_orig = ('@*stamp' in s) or ('comu_stamp' in s)
+            curr_msg = entries[entry_idx].get("message", "") if entry_idx < num_entries else ""
+            is_stamp_entry = ('@*stamp' in curr_msg) or ('comu_stamp' in curr_msg)
+
+            if is_stamp_orig or is_stamp_entry:
+                entry = entries[entry_idx]
+                msg_val = entry.get("message", "")
+                m_stamp = re.search(r'comu_stamp\w+', msg_val) or re.search(r'comu_stamp\w+', s)
+                if m_stamp:
+                    new_strings[i] = f"@d@*stamp@{m_stamp.group(0)}@"
+                else:
+                    new_strings[i] = s
+                prev_line_col = 0
+                entry_idx += 1
+                continue
+
+            # 3. Penanganan Khusus Phonechat / Tablet (@d):
+            if s.startswith('@d'):
                 entry = entries[entry_idx]
                 clean_m = entry.get("message", "").replace('@d', '').replace('@k', '').strip()
                 if word_wrap > 0:
@@ -483,7 +506,7 @@ def insert_script(binu8_orig_path, json_path, binu8_out_path, word_wrap=56):
                 prev_line_col = 0
                 entry_idx += 1
                 continue
-            elif i > 0 and orig_strings[i-1].startswith('@d') and not orig_strings[i-1].startswith('@d@*stamp'):
+            elif i > 0 and orig_strings[i-1].startswith('@d') and not ('@*stamp' in orig_strings[i-1] or 'comu_stamp' in orig_strings[i-1]):
                 entry = entries[entry_idx]
                 prev_d_msg = entries[entry_idx - 1].get("message", "") if entry_idx > 0 else ""
                 new_strings[i] = format_comu_bubble_text(entry.get("message", ""), prev_d=prev_d_msg)
@@ -491,7 +514,7 @@ def insert_script(binu8_orig_path, json_path, binu8_out_path, word_wrap=56):
                 entry_idx += 1
                 continue
 
-            # 3. SEMUA PESAN DIALOG & NARASI (termasuk sambungan @k):
+            # 4. SEMUA PESAN DIALOG & NARASI (termasuk sambungan @k):
             entry = entries[entry_idx]
             curr_speaker = entry.get("name")
 
