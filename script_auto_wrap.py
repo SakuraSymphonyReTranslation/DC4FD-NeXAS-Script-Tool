@@ -101,10 +101,15 @@ def wrap_text(text, max_chars=MAX_CHARS, initial_width=0):
     text = normalize_tags_and_spacing(text)
 
     leading_indent = ""
+    leading_space = ""
     if text.startswith("\u3000"):
         leading_indent = "\u3000"
         text = text[1:]
         initial_width += 2
+    elif text.startswith(" "):
+        leading_space = " "
+        text = text.lstrip(" ")
+        initial_width += 1
 
     # Hapus @n lama.
     text = text.replace("@n", "")
@@ -153,8 +158,11 @@ def wrap_text(text, max_chars=MAX_CHARS, initial_width=0):
     if current:
         lines.append(current)
 
-    if leading_indent and lines:
-        lines[0] = leading_indent + lines[0]
+    if lines:
+        if leading_indent:
+            lines[0] = leading_indent + lines[0]
+        elif leading_space and lines[0]:
+            lines[0] = leading_space + lines[0]
 
     # Jangan membuat @n setelah baris terakhir.
     return "@n".join(lines)
