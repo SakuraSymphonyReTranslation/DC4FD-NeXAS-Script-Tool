@@ -190,22 +190,60 @@ def strip_ruby_tags(text):
     cleaned = re.sub(r"@[rR]", "", cleaned)
     return cleaned
 
-def separate_tags_from_latin_words(text):
+def clean_gaiji_dashes(text):
     """
-    Pada engine NeXAS, nama tag (@h..., @t...) diparsing menggunakan regex alfabet ASCII.
-    Jika tag langsung menempel dengan kata Latin/Indonesia tanpa spasi,
-    contoh: '@hAlice_l150215Bagaimanapun'
-    Engine game akan menganggap 'Bagaimanapun' sebagai bagian dari nama gambar avatar,
-    sehingga kata 'Bagaimanapun' hilang/ditelan dari layar game.
-    Fungsi ini otomatis menyisipkan spasi pemisah agar kata tidak hilang:
-    '@hAlice_l150215 Bagaimanapun'.
+    Membersihkan tag Gaiji dash (@g－ atau @g-) bawaan naskah Jepang:
+    1. Di awal kalimat atau setelah tanda kurung pembuka (「@g－@g－...):
+       Dihapus total tanpa spasi karena merupakan awalan kata.
+    2. Di sebelum tanda baca penutup atau tanda kurung penutup (...@g－@g－」):
+       Dihapus tanpa menyisakan spasi kosong.
+    3. Di tengah kalimat antar kata (kata1@g－@g－kata2):
+       Diubah menjadi tepat 1 spasi pemisah biasa.
     """
     if not text:
         return text
+    # 1. Awalan kalimat / setelah kurung pembuka: hapus total tanpa spasi
+    text = re.sub(r'([「『\(\（]\s*)(?:@g[－\-])+\s*', r'\1', text)
+    text = re.sub(r'^(?:@g[－\-])+\s*', '', text)
+
+    # 2. Sebelum tanda baca penutup / kurung penutup
+    text = re.sub(r'\s*(?:@g[－\-])+\s*([」』\)\）!?！？])', r'\1', text)
+    text = re.sub(r'\s*(?:@g[－\-])+$', '', text)
+
+    # 3. Di tengah kalimat (antara kata): jadikan tepat 1 spasi
+    text = re.sub(r'\s*(?:@g[－\-])+\s*', ' ', text)
+    return text
+
+def normalize_tags_and_spacing(text):
+    """
+    Mengatur spasi di sekitar tag kontrol (@t..., @h..., dll.) agar rapi dan tidak double space:
+    1. Membersihkan tag gaiji dash (@g－ atau @g-).
+    2. Menghapus spasi antar tag yang berurutan (@t0100 @hFace -> @t0100@hFace).
+    3. Menyisipkan spasi pemisah jika tag langsung menempel dengan huruf Latin di belakangnya,
+       agar kata tidak tertelan oleh parser tag engine NeXAS (@hFace123Kata -> @hFace123 Kata).
+    4. Jika terdapat spasi sebelum tag dan sesudah tag, buang spasi sebelum tag sehingga
+       hanya ada 1 spasi yang tampak di layar (menghindari double space seperti 'Sora-nee.  Lagian').
+    """
+    if not text:
+        return text
+
+    # Bersihkan gaiji dash terlebih dahulu
+    text = clean_gaiji_dashes(text)
+
+    # Hapus spasi antar tag berurutan (@t0100 @hFace -> @t0100@hFace)
+    text = re.sub(r'(@[a-zA-Z0-9_*~]+)\s+(?=@)', r'\1', text)
+
     # Tag yang berakhiran angka menempel dengan huruf Latin: @hAlice_l150215Kata -> @hAlice_l150215 Kata
     text = re.sub(r"(@[a-zA-Z0-9_]*\d)([A-Za-z\u00C0-\u024F])", r"\1 \2", text)
     # Tag huruf tunggal menempel dengan huruf Latin: @kKata -> @k Kata
     text = re.sub(r"(@[kgd])([A-Za-z\u00C0-\u024F])", r"\1 \2", text)
+
+    # Jika ada spasi di SEBELUM tag dan spasi di SESUDAH tag:
+    # Contoh: "Sora-nee. @t0810@hNino_0130207 Lagian" -> "Sora-nee.@t0810@hNino_0130207 Lagian"
+    text = re.sub(r'\s+((?:@[a-zA-Z0-9_*~]+)+)\s+', r'\1 ', text)
+
+    # Bersihkan spasi ganda biasa jika ada
+    text = re.sub(r' {2,}', ' ', text)
     return text
 
 def clean_translated_entry(entry):
@@ -213,7 +251,7 @@ def clean_translated_entry(entry):
     Membersihkan entry terjemahan:
     1. Memisahkan awalan nama 'Nama: 「...」' jika terselip di dalam message.
     2. Menghapus tag ruby sisa (@rd@・@).
-    3. Menyisipkan spasi pemisah jika ada kata Latin yang menempel langsung di belakang tag (@h...Kata).
+    3. Membersihkan gaiji dash (@g－) dan menormalisasi spasi tag agar tidak double space.
     4. Menjaga dan menormalisasi format command stiker phonechat (@d@*stamp@<name>@).
     """
     msg = entry.get("message", "")
@@ -224,7 +262,7 @@ def clean_translated_entry(entry):
                 entry["message"] = f"@d@*stamp@{m_stamp.group(0)}@"
             return
         msg = strip_ruby_tags(msg)
-        msg = separate_tags_from_latin_words(msg)
+        msg = normalize_tags_and_spacing(msg)
         entry["message"] = msg
 
     if ("name" not in entry or not entry["name"]) and msg:
