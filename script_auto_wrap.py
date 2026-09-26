@@ -70,6 +70,9 @@ def normalize_tags_and_spacing(text):
        agar kata tidak tertelan oleh parser tag engine NeXAS (@hFace123Kata -> @hFace123 Kata).
     4. Jika terdapat spasi sebelum tag dan sesudah tag, buang spasi sebelum tag sehingga
        hanya ada 1 spasi yang tampak di layar (menghindari double space seperti 'Sora-nee.  Lagian').
+    5. Menghapus spasi sebelum tag kontrol di akhir teks (seperti @k, @t..., dll.) agar tidak
+       menyebabkan double space saat disambung oleh baris berikutnya (chained continuation).
+    6. Menghapus spasi sebelum tanda kurung penutup atau tanda baca penutup.
     """
     if not text:
         return text
@@ -78,8 +81,10 @@ def normalize_tags_and_spacing(text):
     text = re.sub(r"(@[a-zA-Z0-9_]*\d)([A-Za-z\u00C0-\u024F])", r"\1 \2", text)
     text = re.sub(r"(@[kgd])([A-Za-z\u00C0-\u024F])", r"\1 \2", text)
     text = re.sub(r'\s+((?:@[a-zA-Z0-9_*~]+)+)\s+', r'\1 ', text)
+    text = re.sub(r'\s+((?:@[a-zA-Z0-9_*~]+)+)\s*$', r'\1', text)
+    text = re.sub(r'\s+((?:@[a-zA-Z0-9_*~]+)*[」』\)\）])', r'\1', text)
     text = re.sub(r' {2,}', ' ', text)
-    return text
+    return text.rstrip()
 
 
 def wrap_text(text, max_chars=MAX_CHARS, initial_width=0):
