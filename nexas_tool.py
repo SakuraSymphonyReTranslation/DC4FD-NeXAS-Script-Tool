@@ -223,6 +223,9 @@ def normalize_tags_and_spacing(text):
        agar kata tidak tertelan oleh parser tag engine NeXAS (@hFace123Kata -> @hFace123 Kata).
     4. Jika terdapat spasi sebelum tag dan sesudah tag, buang spasi sebelum tag sehingga
        hanya ada 1 spasi yang tampak di layar (menghindari double space seperti 'Sora-nee.  Lagian').
+    5. Menghapus spasi sebelum tag kontrol di akhir teks (seperti @k, @t..., dll.) agar tidak
+       menyebabkan double space saat disambung oleh baris berikutnya (chained continuation).
+    6. Menghapus spasi sebelum tanda kurung penutup atau tanda baca penutup.
     """
     if not text:
         return text
@@ -242,9 +245,18 @@ def normalize_tags_and_spacing(text):
     # Contoh: "Sora-nee. @t0810@hNino_0130207 Lagian" -> "Sora-nee.@t0810@hNino_0130207 Lagian"
     text = re.sub(r'\s+((?:@[a-zA-Z0-9_*~]+)+)\s+', r'\1 ', text)
 
+    # Hapus spasi sebelum tag kontrol yang berada di akhir string (seperti @k, @t..., dll.):
+    # Contoh: "……, @t0215@hNino_0160208@k" -> "……,@t0215@hNino_0160208@k"
+    # Contoh: "Tunggu…… @k" -> "Tunggu……@k"
+    text = re.sub(r'\s+((?:@[a-zA-Z0-9_*~]+)+)\s*$', r'\1', text)
+
+    # Hapus spasi sebelum kurung siku penutup atau tanda baca penutup:
+    # Contoh: "Teks 」" -> "Teks」"
+    text = re.sub(r'\s+((?:@[a-zA-Z0-9_*~]+)*[」』\)\）])', r'\1', text)
+
     # Bersihkan spasi ganda biasa jika ada
     text = re.sub(r' {2,}', ' ', text)
-    return text
+    return text.rstrip()
 
 def clean_translated_entry(entry):
     """
@@ -599,7 +611,8 @@ def insert_script(binu8_orig_path, json_path, binu8_out_path, word_wrap=56):
 
             if is_continuation:
                 # Sambungan dialog pada baris yang sama (chained continuation @k)
-                if not msg.startswith(' ') and not msg.startswith('\u3000'):
+                msg = msg.lstrip(' ')
+                if not msg.startswith('\u3000'):
                     msg = f" {msg}"
                 if word_wrap > 0:
                     msg = apply_word_wrap(msg, word_wrap, initial_width=prev_line_col)
