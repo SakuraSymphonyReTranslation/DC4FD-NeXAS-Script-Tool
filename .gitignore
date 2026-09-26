@@ -35,6 +35,15 @@ DC4fdswtich tool.rar
 # Release artifacts (created locally)
 release/
 *.zip
-!DC4FD_NeXAS_Script_Tool_v*.zip
-*.zip
 *.old
+
+# Switch Keys & Packages (Do not commit!)
+*.keys
+*.dat
+*.nsp
+*.nca
+prod.keys
+title.keys
+nsp_mod_maker_tool/
+NSPModMaker.exe_extracted/
+pyinstxtractor.py

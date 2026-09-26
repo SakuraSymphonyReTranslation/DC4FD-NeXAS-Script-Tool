@@ -97,17 +97,35 @@ python gui.py
 
 ---
 
-### 3. Automasi Deployment Patch (`update_patch.bat`)
+### 3. Automasi Deployment Patch (`update_patch.bat` & `build_patch_nsp.py`)
 
-Jika Anda bermain menggunakan emulator Eden / Ryujinx di PC atau ingin menyiapkan berkas mod LayeredFS untuk konsol Nintendo Switch (Atmosphere):
+Tool ini mendukung **dua format patch resmi** yang kompatibel dengan emulator (Citron, Eden, Ryujinx, Yuzu) maupun konsol Nintendo Switch asli (Atmosphere CFW):
 
+#### A. Format 1: LayeredFS Mod (`DC4FD_Translation_Patch.zip`, ~2.4 MB) — *Format Standar & Sangat Ringan*
+Format ini hanya berisi file teks modifikasi (`Script/` dan `Config/`), sangat cepat diunduh, legal dibagikan secara publik (tanpa copyright game), dan didukung langsung oleh semua sistem:
+- **Nintendo Switch (Atmosphere):** Ekstrak isi ZIP langsung ke kartu microSD konsol di:  
+  `sdmc:/atmosphere/contents/010081E0161B2000/`
+- **Emulator Eden:** Otomatis disalin oleh `update_patch.bat` ke:  
+  `%APPDATA%\eden\load\010081E0161B2000\D.C.4 Fortunate Departures Patch\`
+- **Emulator Citron / Yuzu:** Klik kanan game pada daftar game ➔ Pilih **"Open Mod Data Location"** ➔ Tempel folder mod ke dalamnya.
+
+#### B. Format 2: Standalone Installable Package (`.nsp`, 1 File Mandiri) — *Compatible "Update and DLC"*
+Jika Anda menginginkan **1 file patch tunggal** berformat `.nsp` yang dapat diinstal langsung via menu emulator atau installer Nintendo Switch:
+- **Emulator Citron & Eden:** Buka menu **File ➔ Install Files to NAND...** (atau menu Update/DLC), pilih file `.nsp`, dan game langsung terpasang sebagai versi patched.
+- **Nintendo Switch (DBI / Tinfoil / Goldleaf):** Sambungkan Switch via USB, buka DBI ➔ **Install Title, Update, DLC**, lalu seret file `.nsp` untuk diinstal ke NAND/SD.
+
+> [!NOTE]
+> Pada sistem operasi Nintendo Switch (Horizon OS), update paket `.nsp` yang tidak menggunakan enkripsi delta BKTR resmi Nintendo wajib menyertakan seluruh aset RomFS (~7 GB) agar konsol tidak crash saat memuat ribuan audio suara dan grafis base game. Tool pembantu otomatis `build_patch_nsp.py` telah dikonfigurasi untuk menggabungkan Base Game NSP lokal dengan mod teks kita secara otomatis.
+
+#### Cara Menggunakan `update_patch.bat`:
 1. Pastikan folder `romfs\Script_Mod` telah berisi file `.binu8` hasil injeksi.
 2. Dobel-klik **`update_patch.bat`**.
 3. Skrip otomatis akan:
    - Menyalin binary mod ke struktur LayeredFS lokal (`DC4FD_Indo_Patch\romfs\Script\`).
    - Menyalin konfigurasi font kustom (`romfs\Custom Config\system.datu8`) ke `DC4FD_Indo_Patch\romfs\Config\`.
-   - Menyinkronkan patch langsung ke folder load emulator Eden (`%APPDATA%\eden\load\010081E0161B2000\...`).
-   - Mengemas ulang berkas `DC4FD_Translation_Patch.zip` yang siap disalin ke kartu microSD konsol Nintendo Switch (`atmosphere/contents/010081E0161B2000/`).
+   - Menyinkronkan patch langsung ke emulator Eden (`%APPDATA%\eden\load\010081E0161B2000\...`).
+   - Mengemas ulang berkas `DC4FD_Translation_Patch.zip` (~2.4 MB).
+   - Menanyakan apakah Anda ingin membuka **NSP Mod Maker** untuk membangun 1 File NSP mandiri. Jika Anda memilih `1`, aplikasi pembuat NSP akan terbuka dengan path Base Game NSP, RomFS mod, dan keys yang sudah terisi otomatis!
 
 ---
 

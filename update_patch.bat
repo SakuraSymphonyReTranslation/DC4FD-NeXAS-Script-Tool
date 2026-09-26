@@ -54,9 +54,32 @@ echo.
 echo [2] Folder Mod Lokal (Struktur LayeredFS):
 echo     %~dp0DC4FD_Indo_Patch\romfs
 echo.
-echo [3] File Arsip ZIP (Siap Dibagikan / Salin ke Nintendo Switch):
+echo [3] File Arsip ZIP (Siap Dibagikan / Salin ke Nintendo Switch SD Card):
 echo     %~dp0DC4FD_Translation_Patch.zip
+echo.
+echo [4] File Standalone NSP (Compatible Update/DLC & Install Files to NAND):
+echo     D.C.4 Fortunate Departures [010081E0161B2000][v0][Indo_Mod].nsp
+echo     (Compatible: Citron, Eden, Ryujinx, dan DBI pada Switch Native)
 echo.
 echo ===============================================================================
 echo.
+
+python build_patch_nsp.py --check >nul 2>nul
+if not errorlevel 1 (
+    echo Apakah Anda ingin membuka NSP Mod Maker untuk membuat file Single NSP (.nsp)?
+    echo [1] Ya, buka NSP Mod Maker (Path base NSP, mod, dan keys otomatis terisi)
+    echo [2] Tidak, selesai sekarang (Gunakan file ZIP / LayeredFS mod)
+    echo.
+    set /p "CHOICE=Pilihan Anda [1/2] (Default: 2): "
+    if "%CHOICE%"=="1" (
+        echo.
+        python build_patch_nsp.py --launch
+    )
+) else (
+    echo [i] Catatan: Jika ingin membuat file 1-NSP mandiri, jalankan:
+    echo     python build_patch_nsp.py
+)
+
+echo.
+echo Selesai.
 pause
