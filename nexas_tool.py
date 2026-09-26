@@ -348,9 +348,9 @@ def format_comu_bubble_text(text, prev_d=""):
     Format khusus untuk teks percakapan di dalam balon obrolan (Comu / Phonechat).
     
     1. Memperbaiki kata yang terbelah akibat @n sisa Jepang.
-    2. Pesan Pendek (<= 44 kolom visual): tampilkan utuh dalam 1 baris tanpa @n.
-    3. Pesan Sedang: dibagi proporsional ke dalam 2 baris (tiap baris <= 44 kolom visual).
-    4. Pesan Panjang: dibagi proporsional ke dalam 3 baris (tiap baris <= 44 kolom visual).
+    2. Pesan Pendek (<= 50 kolom visual): tampilkan utuh dalam 1 baris tanpa @n (memakai Frame 1 ramping).
+    3. Pesan Sedang (<= 106 kolom visual): dibagi proporsional ke dalam 2 baris (tiap baris <= 54 kolom visual).
+    4. Pesan Sangat Panjang (> 106 kolom visual): dibagi proporsional ke dalam 3 baris (tiap baris <= 52 kolom visual).
     """
     text = repair_broken_comu_words(text, prev_d)
     clean = text.replace('@d', '').replace('@k', '').replace('@n', ' ').replace('\n', ' ')
@@ -358,10 +358,11 @@ def format_comu_bubble_text(text, prev_d=""):
     words = clean.split(' ')
     total_len = visible_length(clean)
 
-    if total_len <= 44 or len(words) <= 1:
+    # 1. Pesan Pendek (<= 56 kolom visual): tetap utuh 1 baris (Frame 1 ramping)
+    if total_len <= 56 or len(words) <= 1:
         return clean
 
-    # Cek apakah bisa 2 baris proporsional (tiap baris <= 44 kolom visual)
+    # 2. Cek apakah bisa 2 baris proporsional (tiap baris <= 56 kolom visual)
     best_2 = None
     best_2_score = float('inf')
     for i in range(1, len(words)):
@@ -369,10 +370,11 @@ def format_comu_bubble_text(text, prev_d=""):
         l2 = ' '.join(words[i:])
         v1 = visible_length(l1)
         v2 = visible_length(l2)
-        if v1 <= 44 and v2 <= 44:
+        if v1 <= 56 and v2 <= 56:
             penalty = 0
             if len(words[i:]) == 1 and len(words[i]) <= 3:
                 penalty += 50
+            penalty += max(0, v1 - 54) * 20 + max(0, v2 - 54) * 20
             score = max(v1, v2) * 2 + abs(v1 - v2) + penalty
             if score < best_2_score:
                 best_2_score = score
@@ -381,7 +383,7 @@ def format_comu_bubble_text(text, prev_d=""):
     if best_2:
         return f"{best_2[0]}@n{best_2[1]}"
 
-    # Jika tidak muat di 2 baris, bagi ke dalam 3 baris (tiap baris <= 44 kolom visual)
+    # 3. Jika teks sangat panjang (> 110 kolom), bagi ke dalam 3 baris (tiap baris <= 54 kolom visual)
     best_3 = None
     best_3_score = float('inf')
     for i in range(1, len(words) - 1):
@@ -390,8 +392,8 @@ def format_comu_bubble_text(text, prev_d=""):
             l2 = ' '.join(words[i:j])
             l3 = ' '.join(words[j:])
             lens = [visible_length(l1), visible_length(l2), visible_length(l3)]
-            if all(l <= 44 for l in lens):
-                penalty = sum(max(0, l - 42) * 50 for l in lens)
+            if all(l <= 54 for l in lens):
+                penalty = sum(max(0, l - 52) * 30 for l in lens)
                 variance = max(lens) - min(lens)
                 score = max(lens) * 10 + variance + penalty
                 if score < best_3_score:
@@ -401,7 +403,7 @@ def format_comu_bubble_text(text, prev_d=""):
     if best_3:
         return '@n'.join(best_3)
 
-    return apply_word_wrap(clean, max_len=42)
+    return apply_word_wrap(clean, max_len=54)
 
 # Gunakan implementasi algoritma dari script_auto_wrap jika tersedia
 try:
