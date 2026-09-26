@@ -41,6 +41,47 @@ def tokenize(text):
     return pattern.findall(text)
 
 
+def clean_gaiji_dashes(text):
+    """
+    Membersihkan tag Gaiji dash (@g－ atau @g-) bawaan naskah Jepang:
+    1. Di awal kalimat atau setelah tanda kurung pembuka (「@g－@g－...):
+       Dihapus total tanpa spasi karena merupakan awalan kata.
+    2. Di sebelum tanda baca penutup atau tanda kurung penutup (...@g－@g－」):
+       Dihapus tanpa menyisakan spasi kosong.
+    3. Di tengah kalimat antar kata (kata1@g－@g－kata2):
+       Diubah menjadi tepat 1 spasi pemisah biasa.
+    """
+    if not text:
+        return text
+    text = re.sub(r'([「『\(\（]\s*)(?:@g[－\-])+\s*', r'\1', text)
+    text = re.sub(r'^(?:@g[－\-])+\s*', '', text)
+    text = re.sub(r'\s*(?:@g[－\-])+\s*([」』\)\）!?！？])', r'\1', text)
+    text = re.sub(r'\s*(?:@g[－\-])+$', '', text)
+    text = re.sub(r'\s*(?:@g[－\-])+\s*', ' ', text)
+    return text
+
+
+def normalize_tags_and_spacing(text):
+    """
+    Mengatur spasi di sekitar tag kontrol (@t..., @h..., dll.) agar rapi dan tidak double space:
+    1. Membersihkan tag gaiji dash (@g－ atau @g-).
+    2. Menghapus spasi antar tag yang berurutan (@t0100 @hFace -> @t0100@hFace).
+    3. Menyisipkan spasi pemisah jika tag langsung menempel dengan huruf Latin di belakangnya,
+       agar kata tidak tertelan oleh parser tag engine NeXAS (@hFace123Kata -> @hFace123 Kata).
+    4. Jika terdapat spasi sebelum tag dan sesudah tag, buang spasi sebelum tag sehingga
+       hanya ada 1 spasi yang tampak di layar (menghindari double space seperti 'Sora-nee.  Lagian').
+    """
+    if not text:
+        return text
+    text = clean_gaiji_dashes(text)
+    text = re.sub(r'(@[a-zA-Z0-9_*~]+)\s+(?=@)', r'\1', text)
+    text = re.sub(r"(@[a-zA-Z0-9_]*\d)([A-Za-z\u00C0-\u024F])", r"\1 \2", text)
+    text = re.sub(r"(@[kgd])([A-Za-z\u00C0-\u024F])", r"\1 \2", text)
+    text = re.sub(r'\s+((?:@[a-zA-Z0-9_*~]+)+)\s+', r'\1 ', text)
+    text = re.sub(r' {2,}', ' ', text)
+    return text
+
+
 def wrap_text(text, max_chars=MAX_CHARS, initial_width=0):
     """
     Auto-wrap cerdas dengan batas visual lebar karakter.
@@ -54,6 +95,10 @@ def wrap_text(text, max_chars=MAX_CHARS, initial_width=0):
     - @n lama dihapus dan posisi wrap dihitung ulang.
     - Control code tidak dihitung.
     """
+    if not text:
+        return text
+
+    text = normalize_tags_and_spacing(text)
 
     leading_indent = ""
     if text.startswith("\u3000"):
