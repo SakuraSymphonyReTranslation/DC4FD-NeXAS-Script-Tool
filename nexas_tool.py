@@ -418,10 +418,15 @@ except ImportError:
         if not max_len or max_len <= 0:
             return text
         leading_indent = ""
+        leading_space = ""
         if text.startswith("\u3000"):
             leading_indent = "\u3000"
             text = text[1:]
             initial_width += 2
+        elif text.startswith(" "):
+            leading_space = " "
+            text = text.lstrip(" ")
+            initial_width += 1
 
         text = text.replace("@n", "")
         tokens = re.findall(r'@(?:v[A-Za-z0-9_]+|h[A-Za-z0-9_]+|t\d+|n|k|g|[a-zA-Z0-9_]+)|\s+|[^\s@]+', text)
@@ -452,8 +457,11 @@ except ImportError:
             pending_space = ""
         if current:
             lines.append(current)
-        if leading_indent and lines:
-            lines[0] = leading_indent + lines[0]
+        if lines:
+            if leading_indent:
+                lines[0] = leading_indent + lines[0]
+            elif leading_space and lines[0]:
+                lines[0] = leading_space + lines[0]
         return "@n".join(lines)
 
 def insert_script(binu8_orig_path, json_path, binu8_out_path, word_wrap=56):
@@ -575,7 +583,7 @@ def insert_script(binu8_orig_path, json_path, binu8_out_path, word_wrap=56):
                 and not s.startswith('『')
                 and (
                     (bool(curr_speaker) and curr_speaker == last_speaker)
-                    or (not curr_speaker and not s.startswith('\u3000') and ('」' in msg or '@h' in msg or '@t' in msg))
+                    or (not curr_speaker and (not is_msg or (i in msg_to_speaker and msg_to_speaker[i][1] == last_speaker)))
                 )
             )
 
