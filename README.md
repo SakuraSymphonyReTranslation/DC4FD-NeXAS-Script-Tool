@@ -109,13 +109,17 @@ Format ini hanya berisi file teks modifikasi (`Script/` dan `Config/`), sangat c
   `%APPDATA%\eden\load\010081E0161B2000\D.C.4 Fortunate Departures Patch\`
 - **Emulator Citron / Yuzu:** Klik kanan game pada daftar game ➔ Pilih **"Open Mod Data Location"** ➔ Tempel folder mod ke dalamnya.
 
-#### B. Format 2: Standalone Installable Package (`.nsp`, 1 File Mandiri) — *Compatible "Update and DLC"*
-Jika Anda menginginkan **1 file patch tunggal** berformat `.nsp` yang dapat diinstal langsung via menu emulator atau installer Nintendo Switch:
-- **Emulator Citron & Eden:** Buka menu **File ➔ Install Files to NAND...** (atau menu Update/DLC), pilih file `.nsp`, dan game langsung terpasang sebagai versi patched.
-- **Nintendo Switch (DBI / Tinfoil / Goldleaf):** Sambungkan Switch via USB, buka DBI ➔ **Install Title, Update, DLC**, lalu seret file `.nsp` untuk diinstal ke NAND/SD.
+#### B. Format 2: Standalone Installable Package (`.nsp`) — *Tidak Lagi Didukung*
 
-> [!NOTE]
-> Pada sistem operasi Nintendo Switch (Horizon OS), update paket `.nsp` yang tidak menggunakan enkripsi delta BKTR resmi Nintendo wajib menyertakan seluruh aset RomFS (~7 GB) agar konsol tidak crash saat memuat ribuan audio suara dan grafis base game. Tool pembantu otomatis `build_patch_nsp.py` telah dikonfigurasi untuk menggabungkan Base Game NSP lokal dengan mod teks kita secara otomatis.
+> [!IMPORTANT]
+> Berdasarkan kebijakan distribusi, **base game tidak digabung** ke dalam satu NSP
+> besar agar tidak melanggar hak cipta Nintendo. Patch bahasa Indonesia
+> **distribusikan terpisah** dalam Format 1 (LayeredFS ZIP) di atas, dan pengguna
+> memasangnya dengan menyalin isi ZIP ke folder mod emulator/konsol masing-masing.
+> Opsi pembuatan NSP pada `update_patch.bat` telah dinonaktifkan.
+> (Secara teknis, engine NeXAS versi Switch juga tidak mendukung mekanisme arsip
+> patch seperti `patch.rom` milik engine Shin pada Da Capo 4 — seluruh mod
+> bekerja murni lewat penggantian file RomFS per-file.)
 
 #### Cara Menggunakan `update_patch.bat`:
 1. Pastikan folder `romfs\Script_Mod` telah berisi file `.binu8` hasil injeksi.
@@ -124,8 +128,8 @@ Jika Anda menginginkan **1 file patch tunggal** berformat `.nsp` yang dapat diin
    - Menyalin binary mod ke struktur LayeredFS lokal (`DC4FD_Indo_Patch\romfs\Script\`).
    - Menyalin konfigurasi font kustom (`romfs\Custom Config\system.datu8`) ke `DC4FD_Indo_Patch\romfs\Config\`.
    - Menyinkronkan patch langsung ke emulator Eden (`%APPDATA%\eden\load\010081E0161B2000\...`).
-   - Mengemas ulang berkas `DC4FD_Translation_Patch.zip` (~2.4 MB).
-   - Menanyakan apakah Anda ingin membuka **NSP Mod Maker** untuk membangun 1 File NSP mandiri. Jika Anda memilih `1`, aplikasi pembuat NSP akan terbuka dengan path Base Game NSP, RomFS mod, dan keys yang sudah terisi otomatis!
+   - Mengemas ulang berkas `DC4FD_Translation_Patch.zip` (~2.4 MB) siap distribusi.
+4. Video lirik OP Indonesia (opsional): encode video sesuai `docs\SPEK_ENCODE_VIDEO.md`, lalu salin sebagai `romfs\Movie\4fd_op.mp4` pada folder patch sebelum menjalankan batch.
 
 ---
 
