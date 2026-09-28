@@ -2,7 +2,7 @@
 
 > 🇬🇧 English version: [README_EN.md](README_EN.md)
 
-Toolkit ekstraksi dan injeksi naskah skrip visual novel berbasis engine **Circus NeXAS** untuk **Da Capo 4 Fortunate Departures (D.C.4 FD)** versi Nintendo Switch (Title ID: `010081E0161B2000`) dan judul NeXAS lainnya (seperti *Aquarium*).
+Toolkit ekstraksi dan injeksi naskah skrip visual novel berbasis engine **Circus NeXAS** untuk **Da Capo 4 Fortunate Departures (D.C.4 FD)** versi Nintendo Switch (Title ID: `010081E0161B2000`).
 
 Dilengkapi dengan algoritma **Smart Character-Width Aware Word Wrapping**, **Chained Dialogue Cursor Tracking**, serta **Konfigurasi Font Kustom** (`system.datu8`) untuk mencegah teks meluber, terpotong, atau bertumpuk di layar konsol Nintendo Switch maupun emulator.
 
@@ -182,4 +182,6 @@ Repositori ini **hanya menyediakan perkakas pengembang (tools & scripts)** dan *
 ## 🌸 Kredit & Lisensi
 
 Dikembangkan untuk proyek lokalisasi **Sakura Symphony Re; Translation**.  
+Riset format berkas engine NeXAS mengacu pada dokumentasi komunitas
+[Niflheim](https://github.com/Yggdrasill-Moe/Niflheim) (riset judul *Aquarium*).
 Bebas digunakan dan dimodifikasi untuk keperluan non-komersial dan pelestarian visual novel.

@@ -2,7 +2,7 @@
 
 > 🇮🇩 Versi Bahasa Indonesia: [README.md](README.md)
 
-A toolkit for extracting and injecting script text from visual novels built on the **Circus NeXAS** engine — made for **Da Capo 4 Fortunate Departures (D.C.4 FD)** on Nintendo Switch (Title ID: `010081E0161B2000`) and other NeXAS titles (e.g. *Aquarium*).
+A toolkit for extracting and injecting script text from visual novels built on the **Circus NeXAS** engine — made for **Da Capo 4 Fortunate Departures (D.C.4 FD)** on Nintendo Switch (Title ID: `010081E0161B2000`).
 
 It ships with a **Smart Character-Width Aware Word Wrapping** algorithm, **Chained Dialogue Cursor Tracking**, and a **Custom Font Configuration** (`system.datu8`) to keep translated text from overflowing, getting cut off mid-word, or overlapping on the Switch screen or in emulators.
 
@@ -178,5 +178,7 @@ This repository **only provides developer tooling (tools & scripts)** and **does
 
 ## 🌸 Credits & License
 
-Developed for the **Sakura Symphony Re; Translation** localization project.
+Developed for the **Sakura Symphony Re; Translation** localization project.  
+NeXAS engine file-format research builds on community documentation from
+[Niflheim](https://github.com/Yggdrasill-Moe/Niflheim) (research on the *Aquarium* title).
 Free to use and modify for non-commercial purposes and visual novel preservation.
