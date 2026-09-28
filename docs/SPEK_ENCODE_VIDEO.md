@@ -1,5 +1,7 @@
 # Spesifikasi Encode Video Movie — D.C.4 FD (NeXAS Switch)
 
+> 🇬🇧 English version: [SPEK_ENCODE_VIDEO_EN.md](SPEK_ENCODE_VIDEO_EN.md)
+
 Spesifikasi ini diturunkan langsung dari probe (`ffprobe`) file asli di
 `romfs/Movie/` — dipakai sebagai acuan membuat video opening berlirik Indonesia
 yang nanti dimasukkan ke patch mod (folder `Movie/`).

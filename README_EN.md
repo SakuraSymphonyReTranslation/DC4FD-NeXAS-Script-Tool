@@ -159,7 +159,8 @@ Notes:
 ├── build_release_packages.py      # Builds the 3 multi-platform release zips
 ├── installer.bat                  # 1-click installer (ships inside the emulator zip)
 ├── docs/
-│   └── SPEK_ENCODE_VIDEO.md       # NeXAS movie encode spec (H.264 Main@L4.1, AAC-LC)
+│   ├── SPEK_ENCODE_VIDEO.md       # Spesifikasi encode video Movie NeXAS (Indonesian)
+│   └── SPEK_ENCODE_VIDEO_EN.md    # NeXAS movie encode spec (H.264 Main@L4.1, AAC-LC)
 ├── romfs/
 │   └── Custom Config/
 │       └── system.datu8           # Custom visual novel font size config

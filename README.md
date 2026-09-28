@@ -162,7 +162,8 @@ Catatan:
 ├── build_release_packages.py      # Membangun 3 paket ZIP rilis multi-platform
 ├── installer.bat                  # Installer 1-klik (ikut di dalam paket ZIP emulator)
 ├── docs/
-│   └── SPEK_ENCODE_VIDEO.md       # Spesifikasi encode video Movie NeXAS
+│   ├── SPEK_ENCODE_VIDEO.md       # Spesifikasi encode video Movie NeXAS (Indonesia)
+│   └── SPEK_ENCODE_VIDEO_EN.md    # Movie encode spec (English)
 ├── romfs/
 │   └── Custom Config/
 │       └── system.datu8           # Konfigurasi ukuran font kustom visual novel
