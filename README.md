@@ -1,5 +1,7 @@
 # DC4FD NeXAS Script Tool (CLI & GUI)
 
+> 🇬🇧 English version: [README_EN.md](README_EN.md)
+
 Toolkit ekstraksi dan injeksi naskah skrip visual novel berbasis engine **Circus NeXAS** untuk **Da Capo 4 Fortunate Departures (D.C.4 FD)** versi Nintendo Switch (Title ID: `010081E0161B2000`) dan judul NeXAS lainnya (seperti *Aquarium*).
 
 Dilengkapi dengan algoritma **Smart Character-Width Aware Word Wrapping**, **Chained Dialogue Cursor Tracking**, serta **Konfigurasi Font Kustom** (`system.datu8`) untuk mencegah teks meluber, terpotong, atau bertumpuk di layar konsol Nintendo Switch maupun emulator.
@@ -157,10 +159,15 @@ Catatan:
 ├── gui.py                         # Aplikasi visual Tkinter dengan dark theme & preset wrap
 ├── run_gui.bat                    # Launcher praktis 1-klik untuk GUI di Windows
 ├── update_patch.bat               # Script batch otomatisasi deployment patch & packaging ZIP
+├── build_release_packages.py      # Membangun 3 paket ZIP rilis multi-platform
+├── installer.bat                  # Installer 1-klik (ikut di dalam paket ZIP emulator)
+├── docs/
+│   └── SPEK_ENCODE_VIDEO.md       # Spesifikasi encode video Movie NeXAS
 ├── romfs/
 │   └── Custom Config/
 │       └── system.datu8           # Konfigurasi ukuran font kustom visual novel
-├── README.md                      # Panduan lengkap dokumentasi penggunaan
+├── README.md                      # Panduan lengkap (Bahasa Indonesia)
+├── README_EN.md                   # Panduan lengkap (English)
 └── .gitignore                     # Filter berkas game & cache biner
 ```
 
