@@ -101,13 +101,21 @@ python gui.py
 
 Tool ini mendukung **dua format patch resmi** yang kompatibel dengan emulator (Citron, Eden, Ryujinx, Yuzu) maupun konsol Nintendo Switch asli (Atmosphere CFW):
 
-#### A. Format 1: LayeredFS Mod (`DC4FD_Translation_Patch.zip`, ~2.4 MB) — *Format Standar & Sangat Ringan*
-Format ini hanya berisi file teks modifikasi (`Script/` dan `Config/`), sangat cepat diunduh, legal dibagikan secara publik (tanpa copyright game), dan didukung langsung oleh semua sistem:
-- **Nintendo Switch (Atmosphere):** Ekstrak isi ZIP langsung ke kartu microSD konsol di:  
-  `sdmc:/atmosphere/contents/010081E0161B2000/`
-- **Emulator Eden:** Otomatis disalin oleh `update_patch.bat` ke:  
-  `%APPDATA%\eden\load\010081E0161B2000\D.C.4 Fortunate Departures Patch\`
-- **Emulator Citron / Yuzu:** Klik kanan game pada daftar game ➔ Pilih **"Open Mod Data Location"** ➔ Tempel folder mod ke dalamnya.
+#### A. Format 1: LayeredFS Mod — *Format Standar & Sangat Ringan*
+Format ini hanya berisi file teks modifikasi (`Script/` dan `Config/`), sangat cepat diunduh, legal dibagikan secara publik (tanpa copyright game), dan didukung langsung oleh semua sistem.
+
+Tersedia **3 varian paket siap pakai** (dibuat otomatis oleh `build_release_packages.py`):
+
+| Paket | Untuk | Cara Pasang |
+|---|---|---|
+| `DC4FD_Indo_Patch_Atmosphere_Switch.zip` | **Switch asli (Atmosphere)** | Ekstrak ke root microSD → otomatis menjadi `atmosphere/contents/010081E0161B2000/romfs/`. Bisa via PC atau DBI. |
+| `DC4FD_Indo_Patch_Emulators.zip` | **Eden / Citron / Yuzu / Sudachi — Windows & Android** | Ekstrak ke folder `load` milik emulator. Struktur folder emulator Android identik dengan desktop, jadi 1 ZIP sama untuk keduanya. Di Windows, ekstrak lalu dobel-klik `installer.bat` — emulator terdeteksi dan patch terpasang otomatis. |
+| `DC4FD_Indo_Patch_Ryujinx.zip` | **Ryujinx desktop** | Ekstrak ke folder `mods` Ryujinx → menjadi `mods/contents/010081E0161B2000/romfs/`. |
+
+Catatan:
+- **Emulator Eden (Windows):** juga otomatis disalin oleh `update_patch.bat` ke `%APPDATA%\eden\load\010081E0161B2000\D.C.4 Fortunate Departures Patch\`.
+- **Emulator Citron / Yuzu:** alternatif: klik kanan game ➔ *Open Mod Data Location* ➔ tempel isi paket ke dalamnya.
+- **Mengapa banyak file `.binu8`?** Engine NeXAS FD membaca RomFS per-file (tidak punya mekanisme arsip seperti `patch.rom` milik engine Shin pada DC4) dan LayeredFS bekerja per-path — jadi mod memang berbentuk file yang meniru struktur RomFS. Kerumitan itu sudah ditangani paket di atas: pengguna akhir cukup **ekstrak 1 ZIP** (atau 1 klik installer di Windows).
 
 #### B. Format 2: Standalone Installable Package (`.nsp`) — *Tidak Lagi Didukung*
 
