@@ -404,44 +404,38 @@ def export_png(work_dir: str):
     print('[OK] %d PNG diekspor ke %s' % (len(cands), src_dir))
     print('     Panduan: %s' % guide)
 
-def pack_png(work_dir: str, out_patch: str):
-    src_dir = os.path.join(work_dir, 'src')
-    edited_dir = os.path.join(work_dir, 'edited')
-    if not os.path.isdir(src_dir):
-        print('Folder %s tidak ada. Jalankan export-png dulu.' % src_dir)
-        return
-    if not os.path.isdir(edited_dir):
-        os.makedirs(edited_dir, exist_ok=True)
-        print('Folder %s dibuat. Isi dulu dengan hasil edit, lalu jalankan lagi.' % edited_dir)
-        return
+def pack_png_to_patch(edited_dir: str, out_patch: str, log=print) -> dict:
+    """Kemas PNG hasil edit (edited_dir) ke out_patch/romfs/System dengan analisa
+    IHDR asli + konversi format otomatis. Return statistik {'packed','converted','skipped','errors'}."""
+    result = {'packed': 0, 'converted': 0, 'skipped': 0, 'errors': []}
     try:
         from PIL import Image
     except ImportError:
-        print('Pillow belum terpasang (pip install pillow) — dibutuhkan konversi/validasi.')
-        return
-    packed = converted = skipped = 0
+        log('Pillow belum terpasang (pip install pillow) — dibutuhkan konversi/validasi.')
+        result['errors'].append('Pillow tidak terpasang')
+        return result
     for path in sorted(glob.glob(os.path.join(edited_dir, '*.png'))):
         name = os.path.basename(path)
         orig = os.path.join(SPM_DIR, name)
         if not os.path.exists(orig):
-            print('[LEWATI] %s bukan file System yang dikenal' % name)
-            skipped += 1
+            log('[LEWATI] %s bukan file System yang dikenal' % name)
+            result['skipped'] += 1
             continue
         try:
             want = png_ihdr(orig)
             got = png_ihdr(path)
         except ValueError as e:
-            print('[LEWATI] %s' % e)
-            skipped += 1
+            log('[LEWATI] %s' % e)
+            result['skipped'] += 1
             continue
         if (got['w'], got['h']) != (want['w'], want['h']):
-            print('[LEWATI] %s: dimensi %dx%d != asli %dx%d — kanvas harus sama persis'
-                  % (name, got['w'], got['h'], want['w'], want['h']))
-            skipped += 1
+            log('[LEWATI] %s: dimensi %dx%d != asli %dx%d — kanvas harus sama persis'
+                % (name, got['w'], got['h'], want['w'], want['h']))
+            result['skipped'] += 1
             continue
         if open(path, 'rb').read() == open(orig, 'rb').read():
-            print('[LEWATI] %s: identik dengan asli (belum diedit?)' % name)
-            skipped += 1
+            log('[LEWATI] %s: identik dengan asli (belum diedit?)' % name)
+            result['skipped'] += 1
             continue
         if (got['bitdepth'], got['colortype'], got['trns']) == \
            (want['bitdepth'], want['colortype'], want['trns']):
@@ -460,17 +454,32 @@ def pack_png(work_dir: str, out_patch: str):
             # verifikasi IHDR hasil konversi
             check = png_ihdr(dst)
             if (check['w'], check['h'], check['colortype']) != (want['w'], want['h'], want['colortype']):
-                print('[GAGAL] %s: konversi tidak menghasilkan format target '
-                      '(dapat ct=%d, inginkan ct=%d)' % (name, check['colortype'], want['colortype']))
+                log('[GAGAL] %s: konversi tidak menghasilkan format target '
+                    '(dapat ct=%d, inginkan ct=%d)' % (name, check['colortype'], want['colortype']))
                 os.remove(dst)
-                skipped += 1
+                result['skipped'] += 1
+                result['errors'].append('konversi gagal: %s' % name)
                 continue
-            converted += 1
+            result['converted'] += 1
         detail = (' | '.join(notes)) if notes else ''
-        print('[OK] %s (%dx%d %s) -> %s%s' % (name, want['w'], want['h'],
-              PNG_CT_NAME[want['colortype']], dst, (' [' + detail + ']') if detail else ''))
-        packed += 1
-    print('Selesai: %d dikemas (%d dikonversi otomatis), %d dilewati.' % (packed, converted, skipped))
+        log('[OK] %s (%dx%d %s)%s' % (name, want['w'], want['h'],
+              PNG_CT_NAME[want['colortype']], (' [' + detail + ']') if detail else ''))
+        result['packed'] += 1
+    log('Selesai PNG: %d dikemas (%d dikonversi otomatis), %d dilewati.'
+        % (result['packed'], result['converted'], result['skipped']))
+    return result
+
+def pack_png(work_dir: str, out_patch: str):
+    src_dir = os.path.join(work_dir, 'src')
+    edited_dir = os.path.join(work_dir, 'edited')
+    if not os.path.isdir(src_dir):
+        print('Folder %s tidak ada. Jalankan export-png dulu.' % src_dir)
+        return
+    if not os.path.isdir(edited_dir):
+        os.makedirs(edited_dir, exist_ok=True)
+        print('Folder %s dibuat. Isi dulu dengan hasil edit, lalu jalankan lagi.' % edited_dir)
+        return
+    pack_png_to_patch(edited_dir, out_patch)
 
 # ============================================================ extract
 def extract_all(out_dir: str):

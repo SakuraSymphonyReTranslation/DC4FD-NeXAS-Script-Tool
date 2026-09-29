@@ -12,12 +12,15 @@ Format JSON:
 import os
 import sys
 import threading
+import traceback
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
 
 # Import engine logic from nexas_tool
 import nexas_tool
+import ui_translation_tool
+import build_full_patch
 
 class NeXASGUI(tk.Tk):
     def __init__(self):
@@ -42,6 +45,10 @@ class NeXASGUI(tk.Tk):
             self.ins_base_var.set(str(script_dir))
             self.ins_json_var.set(str(base_dir / "romfs" / "Json_New"))
             self.ins_out_var.set(str(base_dir / "romfs" / "Script_Mod"))
+
+        # Default UI Translation & Build Patch
+        self.ui_out_patch_var.set(str(base_dir / "DC4FD_Indo_Patch"))
+        self.bp_out_patch_var.set(str(base_dir / "DC4FD_Indo_Patch"))
 
     def setup_styles(self):
         style = ttk.Style(self)
@@ -95,6 +102,16 @@ class NeXASGUI(tk.Tk):
         self.tab_insert = ttk.Frame(self.notebook)
         self.notebook.add(self.tab_insert, text="  Insert (.json -> .binu8)  ")
         self.setup_insert_tab()
+
+        # Tab 3: UI Translation
+        self.tab_ui = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab_ui, text="  UI Translation  ")
+        self.setup_ui_translation_tab()
+
+        # Tab 4: Build Patch Lengkap
+        self.tab_build = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab_build, text="  Build Patch Lengkap  ")
+        self.setup_build_patch_tab()
 
         # Log frame
         log_frame = tk.Frame(self, bg="#1e1e24", padx=20, pady=10)
@@ -206,10 +223,254 @@ class NeXASGUI(tk.Tk):
 
         panel.columnconfigure(0, weight=1)
 
+    # ==================================================
+    #  Tab 3: UI Translation (ui_translation_tool.py)
+    # ==================================================
+    def setup_ui_translation_tab(self):
+        panel = ttk.Frame(self.tab_ui, style="Panel.TFrame", padding=15)
+        panel.pack(fill="both", expand=True, padx=4, pady=8)
+
+        # Baris 0-1: folder patch tujuan
+        ttk.Label(panel, text="Folder Patch Tujuan (LayeredFS / DC4FD_Indo_Patch):").grid(row=0, column=0, sticky="w", pady=(0, 4))
+        self.ui_out_patch_var = tk.StringVar()
+        tk.Entry(panel, textvariable=self.ui_out_patch_var, font=("Segoe UI", 9), bg="#1e1e24", fg="#ffffff", insertbackground="white", bd=1, relief="solid").grid(row=1, column=0, sticky="ew", padx=(0, 6), pady=(0, 8))
+        ttk.Button(panel, text="Folder...", style="Browse.TButton", command=lambda: self.browse_folder(self.ui_out_patch_var)).grid(row=1, column=1, sticky="w", pady=(0, 8))
+
+        # Baris 2-3: CSV terjemahan (bisa banyak)
+        ttk.Label(panel, text="CSV Terjemahan (ui_strings_config.csv / ui_strings_spm.csv — pilih beberapa):").grid(row=2, column=0, sticky="w", pady=(0, 4))
+        self.ui_csv_var = tk.StringVar()
+        tk.Entry(panel, textvariable=self.ui_csv_var, font=("Segoe UI", 9), bg="#1e1e24", fg="#ffffff", insertbackground="white", bd=1, relief="solid").grid(row=3, column=0, sticky="ew", padx=(0, 6), pady=(0, 8))
+        btn_box = tk.Frame(panel, bg="#282932")
+        btn_box.grid(row=3, column=1, sticky="w", pady=(0, 8))
+        ttk.Button(btn_box, text="CSV...", style="Browse.TButton", command=lambda: self.browse_files(self.ui_csv_var, [("CSV Files", "*.csv")])).pack(side="left", padx=2)
+
+        # Baris 4-5: folder PNG hasil edit (untuk pack-png)
+        ttk.Label(panel, text="Folder PNG Hasil Edit (kosong = png_work/edited):", ).grid(row=4, column=0, sticky="w", pady=(0, 4))
+        self.ui_png_var = tk.StringVar(value=str(Path(os.getcwd()) / "png_work" / "edited"))
+        tk.Entry(panel, textvariable=self.ui_png_var, font=("Segoe UI", 9), bg="#1e1e24", fg="#ffffff", insertbackground="white", bd=1, relief="solid").grid(row=5, column=0, sticky="ew", padx=(0, 6), pady=(0, 10))
+        ttk.Button(panel, text="Folder...", style="Browse.TButton", command=lambda: self.browse_folder(self.ui_png_var)).grid(row=5, column=1, sticky="w", pady=(0, 10))
+
+        # Tombol aksi (6 mode)
+        actions = tk.Frame(panel, bg="#282932")
+        actions.grid(row=6, column=0, columnspan=2, sticky="ew")
+        actions.columnconfigure((0, 1, 2), weight=1)
+
+        self.ui_buttons = {}
+        def add_btn(text, col, cmd, primary=True):
+            b = ttk.Button(actions, text=text, style="Primary.TButton" if primary else "Browse.TButton", command=cmd)
+            b.grid(row=0 if primary else 1, column=col, sticky="ew", padx=3, pady=3)
+            self.ui_buttons[text.split(" ")[0]] = b
+
+        add_btn("Extract UI (SPM+Config -> CSV)", 0, self.run_ui_extract)
+        add_btn("Audit PNG (kandidat teks JP)", 1, self.run_ui_audit)
+        add_btn("Export PNG (ke png_work/src)", 2, self.run_ui_export)
+        add_btn("Apply Config (CSV -> .datu8)", 0, self.run_ui_apply_config)
+        add_btn("Apply SPM (CSV -> .spm)", 1, self.run_ui_apply_spm)
+        add_btn("Pack PNG (edited -> patch)", 2, self.run_ui_pack_png, primary=False)
+
+        hint = ttk.Label(panel, text=(
+            "Alur kerja: Extract UI -> isi kolom 'indonesian_translation' di CSV -> Apply Config / Apply SPM.\n"
+            "Untuk label bergambar: Audit PNG -> Export PNG -> edit di Photoshop/GIMP (simpan ke png_work/edited) -> Pack PNG.\n"
+            "Apply Config/SPM otomatis menulis .datu8/.spm ke folder patch tujuan; PNG dikonversi formatnya otomatis."))
+        hint.grid(row=7, column=0, columnspan=2, sticky="w", pady=(10, 0))
+        hint.configure(foreground="#adb5bd", font=("Segoe UI", 8))
+
+        panel.columnconfigure(0, weight=1)
+
+    def ui_thread(self, btn, status, task):
+        btn.config(state="disabled")
+        self.status_var.set(status)
+
+        def wrap():
+            try:
+                task()
+                self.status_var.set("Selesai!")
+            except Exception as e:
+                self.log(f"[!] Error: {e}")
+                self.log(traceback.format_exc())
+                self.status_var.set("Error.")
+                messagebox.showerror("Error", str(e))
+            finally:
+                btn.config(state="normal")
+
+        threading.Thread(target=wrap, daemon=True).start()
+
+    def run_ui_extract(self):
+        def task():
+            self.log("[*] Extract UI: memindai System/*.spm + Config/*.datu8 ...")
+            ui_translation_tool.extract_all(str(Path(os.getcwd()) / "scratch"))
+            self.log("[+] Selesai! CSV tersimpan di folder scratch/ — isi kolom indonesian_translation.")
+            messagebox.showinfo("Sukses", "Extract UI selesai! CSV ada di folder scratch/.")
+        self.ui_thread(self.ui_buttons["Extract"], "Extract UI...", task)
+
+    def run_ui_audit(self):
+        def task():
+            self.log("[*] Audit PNG: memindai romfs/System/*.png (heuristik nama file) ...")
+            ui_translation_tool.audit_png(str(Path(os.getcwd()) / "scratch"))
+            self.log("[+] Selesai! Buka scratch/png_text_audit.html untuk review visual.")
+            messagebox.showinfo("Sukses", "Audit PNG selesai! Lihat scratch/png_text_audit.html")
+        self.ui_thread(self.ui_buttons["Audit"], "Audit PNG...", task)
+
+    def run_ui_export(self):
+        def task():
+            self.log("[*] Export PNG kandidat ke png_work/src/ ...")
+            ui_translation_tool.export_png(str(Path(os.getcwd()) / "png_work"))
+            messagebox.showinfo("Sukses", "PNG diekspor ke png_work/src/. Edit lalu jalankan Pack PNG.")
+        self.ui_thread(self.ui_buttons["Export"], "Export PNG...", task)
+
+    def run_ui_apply_config(self):
+        csvs = [p.strip() for p in self.ui_csv_var.get().split(";") if p.strip() and p.strip().lower().endswith(".csv")]
+        if not csvs:
+            messagebox.showerror("Error", "Pilih file CSV terjemahan dulu (mis. scratch/ui_strings_config.csv)!")
+            return
+        def task():
+            self.log("[*] Apply Config: menerapkan CSV -> .datu8 ke folder patch ...")
+            ui_translation_tool.apply_config_csv(csvs, self.ui_out_patch_var.get().strip())
+            messagebox.showinfo("Sukses", "Config .datu8 diterapkan ke folder patch!")
+        self.ui_thread(self.ui_buttons["Apply"], "Apply Config...", task)
+
+    def run_ui_apply_spm(self):
+        csvs = [p.strip() for p in self.ui_csv_var.get().split(";") if p.strip() and p.strip().lower().endswith(".csv")]
+        if not csvs:
+            messagebox.showerror("Error", "Pilih file CSV terjemahan dulu (mis. scratch/ui_strings_spm.csv)!")
+            return
+        def task():
+            for c in csvs:
+                self.log(f"[*] Apply SPM: {c} -> .spm ke folder patch ...")
+                ui_translation_tool.apply_spm_csv(c, self.ui_out_patch_var.get().strip())
+            messagebox.showinfo("Sukses", "SPM diterapkan ke folder patch!")
+        self.ui_thread(self.ui_buttons["Apply"], "Apply SPM...", task)
+
+    def run_ui_pack_png(self):
+        edited = self.ui_png_var.get().strip()
+        if not edited or not os.path.isdir(edited):
+            messagebox.showerror("Error", "Folder PNG hasil edit tidak ditemukan!")
+            return
+        def task():
+            self.log("[*] Pack PNG: validasi + konversi format otomatis ...")
+            res = ui_translation_tool.pack_png_to_patch(edited, self.ui_out_patch_var.get().strip())
+            if res["packed"]:
+                messagebox.showinfo("Sukses", f"{res['packed']} PNG dikemas ({res['converted']} dikonversi otomatis)!")
+            else:
+                messagebox.showwarning("Tidak ada", "Tidak ada PNG yang dikemas. Cek log.")
+        self.ui_thread(self.ui_buttons["Pack"], "Pack PNG...", task)
+
+    # ==================================================
+    #  Tab 4: Build Patch Lengkap (build_full_patch.py)
+    # ==================================================
+    def setup_build_patch_tab(self):
+        panel = ttk.Frame(self.tab_build, style="Panel.TFrame", padding=15)
+        panel.pack(fill="both", expand=True, padx=4, pady=8)
+
+        ttk.Label(panel, text="Folder Patch Output:").grid(row=0, column=0, sticky="w", pady=(0, 4))
+        self.bp_out_patch_var = tk.StringVar()
+        tk.Entry(panel, textvariable=self.bp_out_patch_var, font=("Segoe UI", 9), bg="#1e1e24", fg="#ffffff", insertbackground="white", bd=1, relief="solid").grid(row=1, column=0, sticky="ew", padx=(0, 6), pady=(0, 8))
+        ttk.Button(panel, text="Folder...", style="Browse.TButton", command=lambda: self.browse_folder(self.bp_out_patch_var)).grid(row=1, column=1, sticky="w", pady=(0, 8))
+
+        # Pilihan komponen
+        ttk.Label(panel, text="Komponen yang dibangun:").grid(row=2, column=0, sticky="w", pady=(0, 4))
+        comp_frame = tk.Frame(panel, bg="#282932")
+        comp_frame.grid(row=3, column=0, columnspan=2, sticky="w", pady=(0, 10))
+        self.bp_vars = {}
+        for i, key in enumerate(build_full_patch.COMPONENTS):
+            var = tk.BooleanVar(value=True)
+            self.bp_vars[key] = var
+            label = {
+                "script": "Naskah Scenario (.binu8)",
+                "ui-config": "UI Config (.datu8)",
+                "ui-spm": "UI Layout (.spm)",
+                "ui-png": "UI Tekstur (PNG)",
+                "video": "Video Lirik OP (Movie/4fd_op.mp4)",
+            }[key]
+            tk.Checkbutton(comp_frame, text=label, variable=var, bg="#282932", fg="#f8f9fa", selectcolor="#1e1e24", activebackground="#282932", activeforeground="#ffffff").grid(row=0, column=i, sticky="w", padx=8)
+
+        # Video opsional
+        ttk.Label(panel, text="Video Lirik OP (kosong = auto-detect Movie/4fd_op.mp4):").grid(row=4, column=0, sticky="w", pady=(0, 4))
+        self.bp_video_var = tk.StringVar()
+        tk.Entry(panel, textvariable=self.bp_video_var, font=("Segoe UI", 9), bg="#1e1e24", fg="#ffffff", insertbackground="white", bd=1, relief="solid").grid(row=5, column=0, sticky="ew", padx=(0, 6), pady=(0, 10))
+        ttk.Button(panel, text="File...", style="Browse.TButton", command=lambda: self.browse_file(self.bp_video_var, [("MP4 Video", "*.mp4")])).grid(row=5, column=1, sticky="w", pady=(0, 10))
+
+        # Opsi pasca-build
+        opt_frame = tk.Frame(panel, bg="#282932")
+        opt_frame.grid(row=6, column=0, columnspan=2, sticky="w", pady=(0, 10))
+        self.bp_zip_var = tk.BooleanVar(value=False)
+        self.bp_install_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(opt_frame, text="Buat paket ZIP rilis (Atmosphere/Emulator/Ryujinx)", variable=self.bp_zip_var, bg="#282932", fg="#f8f9fa", selectcolor="#1e1e24", activebackground="#282932", activeforeground="#ffffff").pack(anchor="w")
+        tk.Checkbutton(opt_frame, text="Pasang otomatis ke emulator Eden setelah build", variable=self.bp_install_var, bg="#282932", fg="#f8f9fa", selectcolor="#1e1e24", activebackground="#282932", activeforeground="#ffffff").pack(anchor="w")
+
+        self.btn_build = ttk.Button(panel, text="Gas Build Patch Lengkap!", style="Primary.TButton", command=self.run_build_patch)
+        self.btn_build.grid(row=7, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+
+        hint = ttk.Label(panel, text=(
+            "Menggabungkan SEMUA terjemahan ke satu patch: scenario (.binu8 dari tab Insert), UI datu8/SPM\n"
+            "(CSV dari tab UI Translation), PNG hasil edit, dan video lirik OP — dalam satu folder LayeredFS."))
+        hint.grid(row=8, column=0, columnspan=2, sticky="w", pady=(10, 0))
+        hint.configure(foreground="#adb5bd", font=("Segoe UI", 8))
+
+        panel.columnconfigure(0, weight=1)
+
+    def run_build_patch(self):
+        out_patch = self.bp_out_patch_var.get().strip()
+        if not out_patch:
+            messagebox.showerror("Error", "Tentukan folder patch output!")
+            return
+        only = [k for k, v in self.bp_vars.items() if v.get()]
+        if not only:
+            messagebox.showerror("Error", "Pilih minimal satu komponen!")
+            return
+
+        class Args: pass
+        args = Args()
+        args.out_patch = out_patch
+        args.only = ",".join(only)
+        args.script_dir = str(Path(os.getcwd()) / "romfs" / "Script_Mod")
+        args.csv_config = [str(Path(os.getcwd()) / "scratch" / "ui_strings_config.csv")]
+        args.csv_spm = str(Path(os.getcwd()) / "scratch" / "ui_strings_spm.csv")
+        args.png_edited = str(Path(os.getcwd()) / "png_work" / "edited")
+        args.video = self.bp_video_var.get().strip() or None
+        args.zip = self.bp_zip_var.get()
+        args.install = self.bp_install_var.get()
+
+        self.btn_build.config(state="disabled")
+        self.status_var.set("Membangun patch lengkap...")
+
+        def task():
+            try:
+                # Redirect print() dari builder ke log GUI
+                import builtins
+                orig_print = builtins.print
+                def log_print(*a, **kw):
+                    msg = " ".join(str(x) for x in a)
+                    self.log(msg)
+                builtins.print = log_print
+                try:
+                    rc = build_full_patch.build(args)
+                finally:
+                    builtins.print = orig_print
+                if rc == 0:
+                    self.status_var.set("Build patch selesai!")
+                    messagebox.showinfo("Sukses", f"Patch lengkap selesai dibangun di:\n{out_patch}")
+                else:
+                    self.status_var.set("Build gagal.")
+            except Exception as e:
+                self.log(f"[!] Error: {e}")
+                self.log(traceback.format_exc())
+                self.status_var.set("Error saat build.")
+                messagebox.showerror("Error", str(e))
+            finally:
+                self.btn_build.config(state="normal")
+
+        threading.Thread(target=task, daemon=True).start()
+
     def browse_folder(self, target_var):
         path = filedialog.askdirectory()
         if path:
             target_var.set(os.path.normpath(path))
+
+    def browse_files(self, target_var, filetypes):
+        paths = filedialog.askopenfilenames(filetypes=filetypes)
+        if paths:
+            target_var.set(";".join(os.path.normpath(p) for p in paths))
 
     def browse_file(self, target_var, filetypes):
         path = filedialog.askopenfilename(filetypes=filetypes)
