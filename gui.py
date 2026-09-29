@@ -50,6 +50,14 @@ class NeXASGUI(tk.Tk):
         self.ui_out_patch_var.set(str(base_dir / "DC4FD_Indo_Patch"))
         self.bp_out_patch_var.set(str(base_dir / "DC4FD_Indo_Patch"))
 
+        # Prefill CSV terjemahan Indonesia (_id) jika ada
+        cfg_id = base_dir / "scratch" / "ui_strings_config_id.csv"
+        spm_id = base_dir / "scratch" / "ui_strings_spm_id.csv"
+        if cfg_id.exists():
+            self.bp_csv_config_var.set(str(cfg_id))
+        if spm_id.exists():
+            self.bp_csv_spm_var.set(str(spm_id))
+
     def setup_styles(self):
         style = ttk.Style(self)
         style.theme_use("clam")
@@ -384,27 +392,39 @@ class NeXASGUI(tk.Tk):
             }[key]
             tk.Checkbutton(comp_frame, text=label, variable=var, bg="#282932", fg="#f8f9fa", selectcolor="#1e1e24", activebackground="#282932", activeforeground="#ffffff").grid(row=0, column=i, sticky="w", padx=8)
 
+        # CSV terjemahan (config & spm) untuk komponen UI
+        ttk.Label(panel, text="CSV Config terjemahan (bisa beberapa; kosong = default scratch):", ).grid(row=4, column=0, sticky="w", pady=(0, 4))
+        self.bp_csv_config_var = tk.StringVar()
+        tk.Entry(panel, textvariable=self.bp_csv_config_var, font=("Segoe UI", 9), bg="#1e1e24", fg="#ffffff", insertbackground="white", bd=1, relief="solid").grid(row=5, column=0, sticky="ew", padx=(0, 6), pady=(0, 8))
+        ttk.Button(panel, text="CSV...", style="Browse.TButton", command=lambda: self.browse_files(self.bp_csv_config_var, [("CSV Files", "*.csv")])).grid(row=5, column=1, sticky="w", pady=(0, 8))
+
+        ttk.Label(panel, text="CSV SPM terjemahan (kosong = default scratch):", ).grid(row=6, column=0, sticky="w", pady=(0, 4))
+        self.bp_csv_spm_var = tk.StringVar()
+        tk.Entry(panel, textvariable=self.bp_csv_spm_var, font=("Segoe UI", 9), bg="#1e1e24", fg="#ffffff", insertbackground="white", bd=1, relief="solid").grid(row=7, column=0, sticky="ew", padx=(0, 6), pady=(0, 8))
+        ttk.Button(panel, text="CSV...", style="Browse.TButton", command=lambda: self.browse_file(self.bp_csv_spm_var, [("CSV Files", "*.csv")])).grid(row=7, column=1, sticky="w", pady=(0, 8))
+
         # Video opsional
-        ttk.Label(panel, text="Video Lirik OP (kosong = auto-detect Movie/4fd_op.mp4):").grid(row=4, column=0, sticky="w", pady=(0, 4))
+        ttk.Label(panel, text="Video Lirik OP (kosong = auto-detect Movie/4fd_op.mp4):", ).grid(row=8, column=0, sticky="w", pady=(0, 4))
         self.bp_video_var = tk.StringVar()
-        tk.Entry(panel, textvariable=self.bp_video_var, font=("Segoe UI", 9), bg="#1e1e24", fg="#ffffff", insertbackground="white", bd=1, relief="solid").grid(row=5, column=0, sticky="ew", padx=(0, 6), pady=(0, 10))
-        ttk.Button(panel, text="File...", style="Browse.TButton", command=lambda: self.browse_file(self.bp_video_var, [("MP4 Video", "*.mp4")])).grid(row=5, column=1, sticky="w", pady=(0, 10))
+        tk.Entry(panel, textvariable=self.bp_video_var, font=("Segoe UI", 9), bg="#1e1e24", fg="#ffffff", insertbackground="white", bd=1, relief="solid").grid(row=9, column=0, sticky="ew", padx=(0, 6), pady=(0, 10))
+        ttk.Button(panel, text="File...", style="Browse.TButton", command=lambda: self.browse_file(self.bp_video_var, [("MP4 Video", "*.mp4")])).grid(row=9, column=1, sticky="w", pady=(0, 10))
 
         # Opsi pasca-build
         opt_frame = tk.Frame(panel, bg="#282932")
-        opt_frame.grid(row=6, column=0, columnspan=2, sticky="w", pady=(0, 10))
+        opt_frame.grid(row=10, column=0, columnspan=2, sticky="w", pady=(0, 10))
         self.bp_zip_var = tk.BooleanVar(value=False)
         self.bp_install_var = tk.BooleanVar(value=False)
         tk.Checkbutton(opt_frame, text="Buat paket ZIP rilis (Atmosphere/Emulator/Ryujinx)", variable=self.bp_zip_var, bg="#282932", fg="#f8f9fa", selectcolor="#1e1e24", activebackground="#282932", activeforeground="#ffffff").pack(anchor="w")
         tk.Checkbutton(opt_frame, text="Pasang otomatis ke emulator Eden setelah build", variable=self.bp_install_var, bg="#282932", fg="#f8f9fa", selectcolor="#1e1e24", activebackground="#282932", activeforeground="#ffffff").pack(anchor="w")
 
         self.btn_build = ttk.Button(panel, text="Gas Build Patch Lengkap!", style="Primary.TButton", command=self.run_build_patch)
-        self.btn_build.grid(row=7, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+        self.btn_build.grid(row=11, column=0, columnspan=2, sticky="ew", pady=(4, 0))
 
         hint = ttk.Label(panel, text=(
             "Menggabungkan SEMUA terjemahan ke satu patch: scenario (.binu8 dari tab Insert), UI datu8/SPM\n"
-            "(CSV dari tab UI Translation), PNG hasil edit, dan video lirik OP — dalam satu folder LayeredFS."))
-        hint.grid(row=8, column=0, columnspan=2, sticky="w", pady=(10, 0))
+            "(CSV di atas), PNG hasil edit, dan video lirik OP — dalam satu folder LayeredFS.\n"
+            "Komponen yang sumbernya kosong dilewati; yang sudah di-Apply manual tetap aman di folder patch."))
+        hint.grid(row=12, column=0, columnspan=2, sticky="w", pady=(10, 0))
         hint.configure(foreground="#adb5bd", font=("Segoe UI", 8))
 
         panel.columnconfigure(0, weight=1)
@@ -424,8 +444,11 @@ class NeXASGUI(tk.Tk):
         args.out_patch = out_patch
         args.only = ",".join(only)
         args.script_dir = str(Path(os.getcwd()) / "romfs" / "Script_Mod")
-        args.csv_config = [str(Path(os.getcwd()) / "scratch" / "ui_strings_config.csv")]
-        args.csv_spm = str(Path(os.getcwd()) / "scratch" / "ui_strings_spm.csv")
+        cfg_csvs = [p.strip() for p in self.bp_csv_config_var.get().split(";") if p.strip()]
+        if not cfg_csvs:
+            cfg_csvs = [str(Path(os.getcwd()) / "scratch" / "ui_strings_config.csv")]
+        args.csv_config = cfg_csvs
+        args.csv_spm = self.bp_csv_spm_var.get().strip() or str(Path(os.getcwd()) / "scratch" / "ui_strings_spm.csv")
         args.png_edited = str(Path(os.getcwd()) / "png_work" / "edited")
         args.video = self.bp_video_var.get().strip() or None
         args.zip = self.bp_zip_var.get()
