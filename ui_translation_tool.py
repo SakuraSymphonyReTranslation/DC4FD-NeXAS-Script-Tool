@@ -384,8 +384,25 @@ def export_png(work_dir: str):
     cands = png_candidates()
     src_dir = os.path.join(work_dir, 'src')
     os.makedirs(src_dir, exist_ok=True)
+    ok = fail = 0
     for c in cands:
-        shutil.copy2(c['path'], os.path.join(src_dir, c['name']))
+        dst = os.path.join(src_dir, c['name'])
+        try:
+            if os.path.exists(dst):
+                os.remove(dst)  # buang dulu: menimpa file yang terbuka di Photoshop/viewer bisa errno 22
+        except OSError:
+            pass
+        try:
+            # copyfile (bukan copy2): timestamp dump ROM sering tidak valid & tak diperlukan
+            shutil.copyfile(c['path'], dst)
+            ok += 1
+        except OSError as e:
+            fail += 1
+            print('[GAGAL] %s: %s' % (c['name'], e))
+            print('        -> Tutup aplikasi yang membuka file ini (Photoshop/viewer) lalu ulangi Export PNG.')
+    print('[OK] %d PNG diekspor ke %s' % (ok, src_dir))
+    if fail:
+        print('[!] %d PNG gagal diekspor (file terkunci program lain?)' % fail)
     guide = os.path.join(work_dir, 'BACA_SAYA.txt')
     with open(guide, 'w', encoding='utf-8') as f:
         f.write(
@@ -401,7 +418,8 @@ def export_png(work_dir: str):
             '4. Jalankan:  python ui_translation_tool.py pack-png\n'
             '   -> file tervalidasi/dikonversi disalin ke folder patch (romfs/System/).\n\n'
             'Kandidat + alasan: scratch/png_text_audit.csv / png_text_audit.html\n')
-    print('[OK] %d PNG diekspor ke %s' % (len(cands), src_dir))
+    if fail:
+        print('[!] %d PNG gagal diekspor (file terkunci program lain?)' % fail)
     print('     Panduan: %s' % guide)
 
 def pack_png_to_patch(edited_dir: str, out_patch: str, log=print) -> dict:
