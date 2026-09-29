@@ -1,5 +1,7 @@
 # Panduan Terjemahan UI Game — D.C.4 FD (NeXAS Switch)
 
+> 🇬🇧 English version: [README_UI_TRANSLATION_EN.md](README_UI_TRANSLATION_EN.md)
+
 Dokumen ini menjelaskan **di mana teks UI game** (menu, tombol, label Scenario Mode,
 judul scenario) berada, formatnya, dan alur kerja menerjemahkannya ke Bahasa Indonesia.
 
