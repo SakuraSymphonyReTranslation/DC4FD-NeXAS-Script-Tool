@@ -18,6 +18,7 @@ venv/
 
 # Scratch & test outputs
 scratch/
+png_work/
 test_*.py
 test_*.json
 test_*.binu8

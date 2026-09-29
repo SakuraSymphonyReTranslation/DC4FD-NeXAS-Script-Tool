@@ -51,6 +51,10 @@ Dilengkapi dengan algoritma **Smart Character-Width Aware Word Wrapping**, **Cha
 7. **Automasi Pembuatan Patch Mod (`update_patch.bat`)**
    - Sekali klik untuk menyalin skrip termodifikasi ke struktur LayeredFS Nintendo Switch, menginstal langsung ke emulator Eden/Ryujinx/Yuzu, dan mengompres file ZIP rilis mod.
 
+8. **Perkakas Terjemahan Antarmuka (UI) — `ui_translation_tool.py`**
+   - Ekstrak & terapkan teks UI (`.datu8` Config via CSV, `.spm` System via penggantian string), audit PNG ber-teks Jepang, serta ekspor PNG untuk diedit di Photoshop/GIMP dengan konversi format otomatis saat dikemas kembali ke patch.
+   - Panduan lengkap: [README_UI_TRANSLATION.md](README_UI_TRANSLATION.md).
+
 ---
 
 ### 📋 Persyaratan Sistem
@@ -172,6 +176,8 @@ Catatan:
 ├── update_patch.bat               # Script batch otomatisasi deployment patch & packaging ZIP
 ├── build_release_packages.py      # Membangun 3 paket ZIP rilis multi-platform
 ├── installer.bat                  # Installer 1-klik (ikut di dalam paket ZIP emulator)
+├── ui_translation_tool.py         # Ekstrak/terapkan teks UI (.datu8/.spm) + audit & pack PNG UI
+├── README_UI_TRANSLATION.md       # Panduan terjemahan UI (peta file, alur kerja, checklist)
 ├── docs/
 │   ├── SPEK_ENCODE_VIDEO.md       # Spesifikasi encode video Movie NeXAS (Indonesia)
 │   └── SPEK_ENCODE_VIDEO_EN.md    # Movie encode spec (English)
@@ -246,6 +252,10 @@ It ships with a **Smart Character-Width Aware Word Wrapping** algorithm, **Chain
 
 7. **Patch Deployment Automation (`update_patch.bat`)**
    - One click copies modified scripts into the Nintendo Switch LayeredFS structure, installs directly into the Eden/Ryujinx/Yuzu emulator, and packages the release ZIP.
+
+8. **UI Translation Tooling — `ui_translation_tool.py`**
+   - Extract & apply UI text (Config `.datu8` via CSV, System `.spm` via string replacement), audit Japanese-text PNGs, and export PNGs for Photoshop/GIMP editing with automatic format conversion when packing back into the patch.
+   - Full guide: [README_UI_TRANSLATION.md](README_UI_TRANSLATION.md).
 
 ---
 
@@ -365,6 +375,8 @@ Notes:
 ├── update_patch.bat               # Batch script: patch deployment automation & ZIP packaging
 ├── build_release_packages.py      # Builds the 3 multi-platform release zips
 ├── installer.bat                  # 1-click installer (ships inside the emulator zip)
+├── ui_translation_tool.py         # Extract/apply UI text (.datu8/.spm) + UI PNG audit & pack
+├── README_UI_TRANSLATION.md       # UI translation guide (file map, workflow, checklist)
 ├── docs/
 │   ├── SPEK_ENCODE_VIDEO.md       # Spesifikasi encode video Movie NeXAS (Indonesian)
 │   └── SPEK_ENCODE_VIDEO_EN.md    # NeXAS movie encode spec (H.264 Main@L4.1, AAC-LC)
