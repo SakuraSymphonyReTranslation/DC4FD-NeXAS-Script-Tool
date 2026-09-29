@@ -46,6 +46,7 @@ Dilengkapi dengan algoritma **Smart Character-Width Aware Word Wrapping**, **Cha
 
 6. **Antarmuka Grafis Modern (GUI) & Terminal (CLI)**
    - GUI modern berbasis Tkinter (`gui.py` / `run_gui.bat`) dengan log real-time, tab navigasi, dan tombol preset batas word wrap (56 / 52 / 0).
+   - 4 tab lengkap: **Extract**, **Insert**, **UI Translation** (6 mode: extract, audit PNG, export PNG, apply config, apply SPM, pack PNG), dan **Build Patch Lengkap** (satu klik menggabungkan scenario + UI + video lirik ke satu patch, opsi ZIP rilis & instal otomatis ke Eden).
    - CLI bertenaga tinggi (`nexas_tool.py`) yang sanggup memproses ratusan file dalam hitungan detik.
 
 7. **Automasi Pembuatan Patch Mod (`update_patch.bat`)**
@@ -54,6 +55,10 @@ Dilengkapi dengan algoritma **Smart Character-Width Aware Word Wrapping**, **Cha
 8. **Perkakas Terjemahan Antarmuka (UI) — `ui_translation_tool.py`**
    - Ekstrak & terapkan teks UI (`.datu8` Config via CSV, `.spm` System via penggantian string), audit PNG ber-teks Jepang, serta ekspor PNG untuk diedit di Photoshop/GIMP dengan konversi format otomatis saat dikemas kembali ke patch.
    - Panduan lengkap: [README_UI_TRANSLATION.md](README_UI_TRANSLATION.md).
+
+9. **Builder Patch Lengkap — `build_full_patch.py`**
+   - Satu perintah menggabungkan SEMUA komponen terjemahan ke satu patch LayeredFS: naskah scenario (`.binu8`), UI Config (`.datu8`), UI layout (`.spm`), tekstur PNG hasil edit, dan video lirik OP Indonesia (`Movie/4fd_op.mp4`) — komponen yang belum ada dilewati dengan jelas, jadi patch selalu valid.
+   - `python build_full_patch.py --zip --install` langsung membuat 3 paket ZIP rilis dan memasang ke emulator Eden.
 
 ---
 
@@ -177,6 +182,7 @@ Catatan:
 ├── build_release_packages.py      # Membangun 3 paket ZIP rilis multi-platform
 ├── installer.bat                  # Installer 1-klik (ikut di dalam paket ZIP emulator)
 ├── ui_translation_tool.py         # Ekstrak/terapkan teks UI (.datu8/.spm) + audit & pack PNG UI
+├── build_full_patch.py            # Builder patch lengkap: scenario + UI + video → 1 patch
 ├── README_UI_TRANSLATION.md       # Panduan terjemahan UI (peta file, alur kerja, checklist)
 ├── docs/
 │   ├── SPEK_ENCODE_VIDEO.md       # Spesifikasi encode video Movie NeXAS (Indonesia)
@@ -248,6 +254,7 @@ It ships with a **Smart Character-Width Aware Word Wrapping** algorithm, **Chain
 
 6. **Modern GUI & CLI**
    - A polished Tkinter GUI (`gui.py` / `run_gui.bat`) with a real-time log, tab navigation, and word-wrap preset buttons (56 / 52 / 0).
+   - 4 complete tabs: **Extract**, **Insert**, **UI Translation** (6 modes: extract, PNG audit, PNG export, apply config, apply SPM, pack PNG), and **Full Patch Builder** (one click combines scenario + UI + lyric video into a single patch, with release ZIP & automatic Eden install options).
    - A high-throughput CLI (`nexas_tool.py`) that processes hundreds of files in seconds.
 
 7. **Patch Deployment Automation (`update_patch.bat`)**
@@ -256,6 +263,10 @@ It ships with a **Smart Character-Width Aware Word Wrapping** algorithm, **Chain
 8. **UI Translation Tooling — `ui_translation_tool.py`**
    - Extract & apply UI text (Config `.datu8` via CSV, System `.spm` via string replacement), audit Japanese-text PNGs, and export PNGs for Photoshop/GIMP editing with automatic format conversion when packing back into the patch.
    - Full guide: [README_UI_TRANSLATION.md](README_UI_TRANSLATION.md).
+
+9. **Full Patch Builder — `build_full_patch.py`**
+   - One command combines ALL translation components into a single LayeredFS patch: scenario scripts (`.binu8`), UI Config (`.datu8`), UI layout (`.spm`), edited PNG textures, and the Indonesian OP lyric video (`Movie/4fd_op.mp4`) — missing components are clearly skipped, so the patch stays valid.
+   - `python build_full_patch.py --zip --install` builds the 3 release ZIPs and installs into the Eden emulator in one go.
 
 ---
 
@@ -376,6 +387,7 @@ Notes:
 ├── build_release_packages.py      # Builds the 3 multi-platform release zips
 ├── installer.bat                  # 1-click installer (ships inside the emulator zip)
 ├── ui_translation_tool.py         # Extract/apply UI text (.datu8/.spm) + UI PNG audit & pack
+├── build_full_patch.py            # Full patch builder: scenario + UI + video → 1 patch
 ├── README_UI_TRANSLATION.md       # UI translation guide (file map, workflow, checklist)
 ├── docs/
 │   ├── SPEK_ENCODE_VIDEO.md       # Spesifikasi encode video Movie NeXAS (Indonesian)

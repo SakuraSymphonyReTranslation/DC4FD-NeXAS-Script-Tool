@@ -32,7 +32,10 @@ judul scenario) berada, formatnya, dan alur kerja menerjemahkannya ke Bahasa Ind
 
 ## Cara Mengekstrak Teks UI
 
-Tool utama: **`ui_translation_tool.py`** (self-contained, tanpa dependensi selain Python 3.8+; Pillow opsional untuk fitur PNG):
+Tool utama: **`ui_translation_tool.py`** (self-contained, tanpa dependensi selain Python 3.8+; Pillow opsional untuk fitur PNG).
+
+> 💡 Semua mode di bawah ini juga tersedia di **GUI** (`run_gui.bat`) — tab **UI Translation**
+> (6 tombol) dan tab **Build Patch Lengkap** (menggabungkan scenario + UI + video ke satu patch).
 
 ```bash
 python ui_translation_tool.py extract
