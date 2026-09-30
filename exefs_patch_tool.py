@@ -198,6 +198,10 @@ def nso_build_uncompressed(img: bytes, info: dict) -> bytes:
         struct.pack_into('<III', hdr, 0x10 + 12 * si, mem_off, fo, size)
         # section header: dst offset + ukuran asli
         struct.pack_into('<II', hdr, 0x60 + 0x10 * si, mem_off, size)
+        # PENTING: zero-pad sampai fo dulu — slice-assign di bytearray dengan
+        # start > len() malah menambah di ujung (menyebabkan file bergeser)
+        if len(hdr) < fo:
+            hdr.extend(b'\x00' * (fo - len(hdr)))
         hdr[fo:fo + size] = img[mem_off:mem_off + size]
         fo += size
         if fo % 0x10:
