@@ -34,11 +34,12 @@ sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 BASE = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE))
 import ui_translation_tool as uit  # noqa: E402
+import exefs_patch_tool as ept  # noqa: E402
 
 TID = "010081E0161B2000"
 MOD_NAME = "D.C.4 Fortunate Departures Patch"
 VIDEO_NAME = "4fd_op.mp4"
-COMPONENTS = ('script', 'ui-config', 'ui-spm', 'ui-png', 'video')
+COMPONENTS = ('script', 'ui-config', 'ui-spm', 'ui-png', 'video', 'exefs')
 
 LINE = '=' * 79
 
@@ -183,6 +184,27 @@ def build(args) -> int:
             summary.append('Video lirik OP : %s (%.1f MB)' % (VIDEO_NAME, mb))
         else:
             print('[LEWATI] Video : %s tidak ditemukan (opsional, wujudkan dulu di Movie/)' % VIDEO_NAME)
+
+    # ---------- 7. ExeFS: pesan info pojok kiri-bawah (dump milik pengguna) ----------
+    if 'exefs' in only:
+        dump_dir = str(BASE / 'scratch' / 'exefs_dump')
+        csv_path = str(BASE / 'scratch' / 'exefs_messages.csv')
+        out_dir = str(BASE / 'scratch' / 'exefs_patch')
+        res = ept.patch_dump(dump_dir, csv_path, out_dir)
+        if res['ok']:
+            summary.append('ExeFS pesan info : %d penggantian' % res['total'])
+            if args.install:
+                eden_exefs = (Path(os.environ.get('APPDATA', '')) / 'eden' / 'exefs' / TID)
+                if (Path(os.environ.get('APPDATA', '')) / 'eden').exists():
+                    eden_exefs.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(res['out'], eden_exefs / 'main')
+                    print('[OK]    ExeFS terpasang ke Eden: %s' % (eden_exefs / 'main'))
+                else:
+                    print('[LEWATI] Eden tidak terdeteksi; salin manual: %s' % res['out'])
+            print('        INGAT: file main hasil patch = kode berhak cipta, JANGAN dibagikan.')
+        else:
+            print('[LEWATI] ExeFS : %s (taruh dump di %s bila ingin menerjemahkan pesan info)'
+                  % (res['reason'], dump_dir))
 
     # ---------- Ringkasan ----------
     print(LINE)
