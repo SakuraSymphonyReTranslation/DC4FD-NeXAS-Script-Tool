@@ -278,6 +278,7 @@ class NeXASGUI(tk.Tk):
         add_btn("Pack PNG (edited -> patch)", 2, self.run_ui_pack_png, primary=False)
         add_btn("Scan ExeFS (pesan info)", 0, self.run_ui_scan_exefs, primary=False)
         add_btn("ExeFS Apply (CSV -> main)", 1, self.run_ui_apply_exefs, primary=False)
+        add_btn("Discover ExeFS (isi CSV otomatis)", 2, self.run_ui_discover_exefs, primary=False)
 
         hint = ttk.Label(panel, text=(
             "Alur kerja: Extract UI -> isi kolom 'indonesian_translation' di CSV -> Apply Config / Apply SPM.\n"
@@ -316,6 +317,21 @@ class NeXASGUI(tk.Tk):
             else:
                 messagebox.showwarning("Tidak dipatch", res["reason"] or "Tidak ada yang diganti.")
         self.ui_thread(self.ui_buttons["ExeFS"], "ExeFS Apply...", task)
+
+    def run_ui_discover_exefs(self):
+        def task():
+            self.log("[*] Discover ExeFS: memindai dump main untuk string pesan Jepang ...")
+            csv_path = str(Path(os.getcwd()) / "scratch" / "exefs_messages.csv")
+            dump_dir = str(Path(os.getcwd()) / "scratch" / "exefs_dump")
+            n = exefs_patch_tool.discover_to_csv(dump_dir, csv_path)
+            exefs_patch_tool.write_guide(str(Path(os.getcwd()) / "scratch"))
+            if n:
+                self.log("[+] %d baris BARU di %s" % (n, csv_path))
+                self.log("    PANDUAN wajib baca: scratch/exefs_messages_BACA_SAYA.txt")
+                messagebox.showinfo("Discover selesai", "%d string baru ditambahkan ke CSV\n\nWAJIB baca panduan isi:\nscratch\\exefs_messages_BACA_SAYA.txt\n\nTerjemahan kosong = aman (tidak diganti).\nIsi lalu klik ExeFS Apply." % n)
+            else:
+                messagebox.showinfo("Discover selesai", "Tidak ada string baru (CSV sudah lengkap / dump tidak ada).")
+        self.ui_thread(self.ui_buttons["Discover"], "Discover ExeFS...", task)
 
     def ui_thread(self, btn, status, task):
         btn.config(state="disabled")
