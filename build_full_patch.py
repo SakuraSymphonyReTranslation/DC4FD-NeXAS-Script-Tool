@@ -187,9 +187,10 @@ def build(args) -> int:
 
     # ---------- 7. ExeFS: pesan info pojok kiri-bawah (dump milik pengguna) ----------
     if 'exefs' in only:
-        dump_dir = str(BASE / 'scratch' / 'exefs_dump')
-        csv_path = str(BASE / 'scratch' / 'exefs_messages.csv')
-        out_dir = str(BASE / 'scratch' / 'exefs_patch')
+        # path bisa dioverride dari GUI/CLI; fallback: nilai sederhana jika argumen tidak ada
+        dump_dir = getattr(args, 'exefs_dump', None) or str(BASE / 'scratch' / 'exefs_dump')
+        csv_path = getattr(args, 'exefs_csv', None) or str(BASE / 'scratch' / 'exefs_messages.csv')
+        out_dir = getattr(args, 'exefs_out', None) or str(BASE / 'scratch' / 'exefs_patch')
         res = ept.patch_dump(dump_dir, csv_path, out_dir)
         if res['ok']:
             summary.append('ExeFS pesan info : %d penggantian' % res['total'])
@@ -247,6 +248,12 @@ def main():
                    help='buat 3 paket ZIP rilis + DC4FD_Translation_Patch.zip setelah build')
     p.add_argument('--install', action='store_true',
                    help='pasang patch ke emulator Eden setelah build')
+    p.add_argument('--exefs-dump', default=str(BASE / 'scratch' / 'exefs_dump'),
+                   help='folder dump ExeFS (berisi file main)')
+    p.add_argument('--exefs-csv', default=str(BASE / 'scratch' / 'exefs_messages.csv'),
+                   help='CSV terjemahan pesan info ExeFS')
+    p.add_argument('--exefs-out', default=str(BASE / 'scratch' / 'exefs_patch'),
+                   help='folder output main hasil patch ExeFS')
     args = p.parse_args()
     sys.exit(build(args))
 
