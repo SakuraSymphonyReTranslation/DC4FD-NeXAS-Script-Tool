@@ -6,6 +6,7 @@ romfs_mod/
 DC4FD_Indo_Patch/
 DC4FD_Translation_Patch/
 DC4FD_Translation_Patch.zip
+D.C.4 Fortunate Departures Patch/
 *.rar
 *.binu8
 
@@ -26,6 +27,16 @@ check_continuation_name.py
 analyze_session.py
 extract_conv.py
 inspect_*.py
+
+# ExeFS dumps & patches (copyrighted code - NEVER commit/upload!)
+scratch/exefs_dump/
+scratch/exefs_patch/
+exefs_dump/
+exefs_patch/
+main
+main.bin
+main.npdm
+rtld
 
 # Third-party / external dumps
 Aquarium_tools/
