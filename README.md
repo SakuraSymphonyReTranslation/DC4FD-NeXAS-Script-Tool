@@ -202,6 +202,31 @@ Repositori ini **hanya menyediakan perkakas pengembang (tools & scripts)** dan *
 
 ---
 
+### 🔧 Menerjemahkan Pesan Info Pojok Kiri-Bawah (Dump ExeFS Manual)
+
+Sebagian kecil teks UI — pesan info yang muncul sesaat di pojok kiri-bawah layar
+(mis. `QUICK 1番をロードしました` saat Quick Load/Quick Save/Jump) — **tidak tersimpan**
+di `.datu8`/`.spm`/`.png` di RomFS, melainkan tertanam di **executable game** (file `main`
+di area ExeFS). Cara menerjemahkannya secara mandiri:
+
+1. **Dump ExeFS milik Anda sendiri** dari salinan game resmi Anda (mis. dengan tool dump
+   yang sama seperti saat mengekstrak RomFS; file yang dibutuhkan: `main`, `main.npdm`).
+2. Salin hasil dump ke `scratch/exefs_dump/main` (folder ini sudah di-gitignore —
+   **JANGAN pernah meng-upload file `main` ke mana pun**, itu kode berhak cipta).
+3. Jalankan:
+   ```bash
+   python exefs_patch_tool.py scan    # temukan string pesan info di binary
+   python exefs_patch_tool.py apply   # ganti dengan terjemahan (panjang byte sama, dipad spasi)
+   ```
+4. Hasil patch tersimpan di `scratch/exefs_patch/main`. Pasang sebagai ExeFS mod:
+   - Eden/emulator: `%APPDATA%\eden\exefs\010081E0161B2000\main`
+   - Atmosphere: `atmosphere/exefs/010081E0161B2000/main`
+
+> Catatan: tool ini hanya menyentuh **string pesan UI** — bukan kode program — dan selalu
+> menjaga panjang byte asli (padding spasi) agar tidak merusak struktur executable.
+
+---
+
 ### 🌸 Kredit & Lisensi
 
 Dikembangkan untuk proyek lokalisasi **Sakura Symphony Re; Translation**.  
@@ -404,6 +429,31 @@ Notes:
 ### ⚠️ Legal Disclaimer
 
 This repository **only provides developer tooling (tools & scripts)** and **does not include any original game assets or copyrighted script content**. Please dump your own `.binu8` script files from your own legitimately-owned Nintendo Switch cartridge or digital copy.
+
+---
+
+### 🔧 Translating the Bottom-Left Info Messages (Manual ExeFS Dump)
+
+A small portion of UI text — the info messages that briefly appear in the bottom-left
+corner (e.g. `QUICK 1番をロードしました` on Quick Load/Quick Save/Jump) — is **not stored**
+in the RomFS `.datu8`/`.spm`/`.png` files; it is embedded in the **game executable** (the
+`main` file in the ExeFS area). To translate it yourself:
+
+1. **Dump the ExeFS from your own copy** of the game (using the same dump tool you used
+   for RomFS; required files: `main`, `main.npdm`).
+2. Place the dump at `scratch/exefs_dump/main` (this folder is gitignored —
+   **NEVER upload the `main` file anywhere**; it is copyrighted code).
+3. Run:
+   ```bash
+   python exefs_patch_tool.py scan    # locate info message strings in the binary
+   python exefs_patch_tool.py apply   # replace with translations (same byte length, space-padded)
+   ```
+4. The patched result is written to `scratch/exefs_patch/main`. Install it as an ExeFS mod:
+   - Eden/emulators: `%APPDATA%\eden\exefs\010081E0161B2000\main`
+   - Atmosphere: `atmosphere/exefs/010081E0161B2000/main`
+
+> Note: this tool only touches **UI message strings** — not program code — and always
+> preserves the original byte length (space padding) so the executable layout stays intact.
 
 ---
 
