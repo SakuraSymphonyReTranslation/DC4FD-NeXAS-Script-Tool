@@ -423,7 +423,8 @@ class NeXASGUI(tk.Tk):
                 "video": "Video Lirik OP (Movie/4fd_op.mp4)",
                 "exefs": "Pesan Info ExeFS (dump milikmu)",
             }.get(key, key)
-            tk.Checkbutton(comp_frame, text=label, variable=var, bg="#282932", fg="#f8f9fa", selectcolor="#1e1e24", activebackground="#282932", activeforeground="#ffffff").grid(row=0, column=i, sticky="w", padx=8)
+            # grid 3 kolom x N baris supaya semua checkbox terlihat (tidak terpotong)
+            tk.Checkbutton(comp_frame, text=label, variable=var, bg="#282932", fg="#f8f9fa", selectcolor="#1e1e24", activebackground="#282932", activeforeground="#ffffff").grid(row=i // 3, column=i % 3, sticky="w", padx=8, pady=2)
 
         # CSV terjemahan (config & spm) untuk komponen UI
         ttk.Label(panel, text="CSV Config terjemahan (bisa beberapa; kosong = default scratch):", ).grid(row=4, column=0, sticky="w", pady=(0, 4))
@@ -439,26 +440,37 @@ class NeXASGUI(tk.Tk):
         # Video opsional
         ttk.Label(panel, text="Video Lirik OP (kosong = auto-detect Movie/4fd_op.mp4):", ).grid(row=8, column=0, sticky="w", pady=(0, 4))
         self.bp_video_var = tk.StringVar()
-        tk.Entry(panel, textvariable=self.bp_video_var, font=("Segoe UI", 9), bg="#1e1e24", fg="#ffffff", insertbackground="white", bd=1, relief="solid").grid(row=9, column=0, sticky="ew", padx=(0, 6), pady=(0, 10))
-        ttk.Button(panel, text="File...", style="Browse.TButton", command=lambda: self.browse_file(self.bp_video_var, [("MP4 Video", "*.mp4")])).grid(row=9, column=1, sticky="w", pady=(0, 10))
+        tk.Entry(panel, textvariable=self.bp_video_var, font=("Segoe UI", 9), bg="#1e1e24", fg="#ffffff", insertbackground="white", bd=1, relief="solid").grid(row=9, column=0, sticky="ew", padx=(0, 6), pady=(0, 8))
+        ttk.Button(panel, text="File...", style="Browse.TButton", command=lambda: self.browse_file(self.bp_video_var, [("MP4 Video", "*.mp4")])).grid(row=9, column=1, sticky="w", pady=(0, 8))
+
+        # ExeFS: file main (dump) + CSV pesan info
+        ttk.Label(panel, text="ExeFS: file main hasil dump (kosong = scratch/exefs_dump/main):", ).grid(row=10, column=0, sticky="w", pady=(0, 4))
+        self.bp_exefs_main_var = tk.StringVar()
+        tk.Entry(panel, textvariable=self.bp_exefs_main_var, font=("Segoe UI", 9), bg="#1e1e24", fg="#ffffff", insertbackground="white", bd=1, relief="solid").grid(row=11, column=0, sticky="ew", padx=(0, 6), pady=(0, 8))
+        ttk.Button(panel, text="File...", style="Browse.TButton", command=lambda: self.browse_file(self.bp_exefs_main_var, [("NSO main", "*"), ("Semua file", "*.*")])).grid(row=11, column=1, sticky="w", pady=(0, 8))
+
+        ttk.Label(panel, text="ExeFS: CSV pesan info (kosong = scratch/exefs_messages.csv):", ).grid(row=12, column=0, sticky="w", pady=(0, 4))
+        self.bp_exefs_csv_var = tk.StringVar()
+        tk.Entry(panel, textvariable=self.bp_exefs_csv_var, font=("Segoe UI", 9), bg="#1e1e24", fg="#ffffff", insertbackground="white", bd=1, relief="solid").grid(row=13, column=0, sticky="ew", padx=(0, 6), pady=(0, 8))
+        ttk.Button(panel, text="CSV...", style="Browse.TButton", command=lambda: self.browse_file(self.bp_exefs_csv_var, [("CSV Files", "*.csv")])).grid(row=13, column=1, sticky="w", pady=(0, 8))
 
         # Opsi pasca-build
         opt_frame = tk.Frame(panel, bg="#282932")
-        opt_frame.grid(row=10, column=0, columnspan=2, sticky="w", pady=(0, 10))
+        opt_frame.grid(row=14, column=0, columnspan=2, sticky="w", pady=(0, 10))
         self.bp_zip_var = tk.BooleanVar(value=False)
         self.bp_install_var = tk.BooleanVar(value=False)
         tk.Checkbutton(opt_frame, text="Buat paket ZIP rilis (Atmosphere/Emulator/Ryujinx)", variable=self.bp_zip_var, bg="#282932", fg="#f8f9fa", selectcolor="#1e1e24", activebackground="#282932", activeforeground="#ffffff").pack(anchor="w")
         tk.Checkbutton(opt_frame, text="Pasang otomatis ke emulator Eden setelah build", variable=self.bp_install_var, bg="#282932", fg="#f8f9fa", selectcolor="#1e1e24", activebackground="#282932", activeforeground="#ffffff").pack(anchor="w")
 
         self.btn_build = ttk.Button(panel, text="Gas Build Patch Lengkap!", style="Primary.TButton", command=self.run_build_patch)
-        self.btn_build.grid(row=11, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+        self.btn_build.grid(row=15, column=0, columnspan=2, sticky="ew", pady=(4, 0))
 
         hint = ttk.Label(panel, text=(
             "Menggabungkan SEMUA terjemahan ke satu patch: scenario (.binu8 dari tab Insert), UI datu8/SPM\n"
-            "(CSV di atas), PNG hasil edit, video lirik OP, dan pesan info ExeFS (dump di scratch/exefs_dump,\n"
-            "terjemahan di scratch/exefs_messages.csv) — komponen yang sumbernya kosong dilewati.\n"
-            "Hasil ExeFS TIDAK ikut ZIP distribusi (kode berhak cipta), hanya dipasang ke emulator lokal."))
-        hint.grid(row=12, column=0, columnspan=2, sticky="w", pady=(10, 0))
+            "(CSV di atas), PNG hasil edit, video lirik OP, dan pesan info ExeFS (file main + CSV ExeFS di atas)\n"
+            "— komponen yang sumbernya kosong dilewati. Hasil ExeFS TIDAK ikut ZIP distribusi\n"
+            "(kode berhak cipta), hanya dipasang ke emulator lokal."))
+        hint.grid(row=16, column=0, columnspan=2, sticky="w", pady=(10, 0))
         hint.configure(foreground="#adb5bd", font=("Segoe UI", 8))
 
         panel.columnconfigure(0, weight=1)
@@ -487,6 +499,17 @@ class NeXASGUI(tk.Tk):
         args.video = self.bp_video_var.get().strip() or None
         args.zip = self.bp_zip_var.get()
         args.install = self.bp_install_var.get()
+        # ExeFS: file main pilihan user dipindah sementara ke scratch/exefs_dump
+        main_sel = self.bp_exefs_main_var.get().strip()
+        dump_dir = Path(os.getcwd()) / "scratch" / "exefs_dump"
+        if main_sel and os.path.isfile(main_sel):
+            import shutil
+            dump_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(main_sel, dump_dir / "main")
+            self.log("[i] File main dipakai dari: %s" % main_sel)
+        args.exefs_dump = str(dump_dir)
+        args.exefs_csv = self.bp_exefs_csv_var.get().strip() or str(Path(os.getcwd()) / "scratch" / "exefs_messages.csv")
+        args.exefs_out = str(Path(os.getcwd()) / "scratch" / "exefs_patch")
 
         self.btn_build.config(state="disabled")
         self.status_var.set("Membangun patch lengkap...")
