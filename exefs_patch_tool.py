@@ -36,6 +36,11 @@ import os
 import struct
 import sys
 
+try:
+    import lz4.block as _lz4block  # pip install lz4 (disarankan)
+except ImportError:
+    _lz4block = None
+
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 DUMP_DIR = os.path.join('scratch', 'exefs_dump')
@@ -76,22 +81,26 @@ DEFAULT_ROWS = [
 ]
 
 
-def ensure_csv():
-    if not os.path.exists(CSV_PATH):
-        os.makedirs(os.path.dirname(CSV_PATH), exist_ok=True)
-        with open(CSV_PATH, 'w', encoding='utf-8-sig', newline='') as f:
+def ensure_csv_at(path: str):
+    if not os.path.exists(path):
+        os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
+        with open(path, 'w', encoding='utf-8-sig', newline='') as f:
             w = csv.writer(f)
             w.writerow(['japanese_text', 'indonesian_translation', 'keterangan'])
             for row in DEFAULT_ROWS:
                 w.writerow(row)
-        print('[i] CSV template dibuat: %s — EDIT FILE INI untuk terjemahan manual.' % CSV_PATH)
+        print('[i] CSV template dibuat: %s — EDIT FILE INI untuk terjemahan manual.' % path)
 
 
-def load_csv():
+def ensure_csv():
+    ensure_csv_at(CSV_PATH)
+
+
+def _load_csv(csv_path: str):
     """Return list of (jp, idn, keterangan). Spasi terjemahan dipertahankan verbatim."""
-    ensure_csv()
+    ensure_csv_at(csv_path)
     rows = []
-    with open(CSV_PATH, 'r', encoding='utf-8-sig', newline='') as f:
+    with open(csv_path, 'r', encoding='utf-8-sig', newline='') as f:
         for r in csv.DictReader(f):
             jp = (r.get('japanese_text') or '').strip()
             idn = r.get('indonesian_translation') or ''
@@ -101,18 +110,28 @@ def load_csv():
     return rows
 
 
-def find_main():
+def load_csv():
+    return _load_csv(CSV_PATH)
+
+
+def _find_main(dump_dir: str):
     for name in ('main', 'main.bin', 'main.elf'):
-        p = os.path.join(DUMP_DIR, name)
+        p = os.path.join(dump_dir, name)
         if os.path.exists(p):
             return p
     return None
 
 
+def find_main():
+    return _find_main(DUMP_DIR)
+
+
 # ============================ NSO handling ============================
 
 def lz4_block_decompress(src: bytes, dst_size: int) -> bytes:
-    """Dekompresi blok LZ4 murni-python (format literal/match standar)."""
+    """Dekompresi blok LZ4: utama pakai library lz4 (teruji), fallback implementasi internal."""
+    if _lz4block is not None:
+        return _lz4block.decompress(src, uncompressed_size=dst_size)
     dst = bytearray()
     i, n = 0, len(src)
     while i < n and len(dst) < dst_size:
@@ -151,36 +170,43 @@ def lz4_block_decompress(src: bytes, dst_size: int) -> bytes:
         # copy dengan slice (aman utk overlapping: sumber disalin dulu)
         dst += dst[start:start + match_len]
     if len(dst) != dst_size:
-        raise ValueError('LZ4: ukuran hasil %d != ekspektasi %d' % (len(dst), dst_size))
+        raise ValueError('LZ4 (fallback internal): ukuran hasil %d != ekspektasi %d '
+                         '(pasang paket "pip install lz4" untuk dekompresi yang andal)'
+                         % (len(dst), dst_size))
     return bytes(dst)
 
 
 def nso_parse(data: bytes):
-    """Parse header NSO0 (layout SwitchBrew). size di 0x10+ = ukuran FILE
-    (ter-kompresi bila flag segmen aktif); ukuran asli ada di section header 0x60+."""
+    """Parse header NSO0 sesuai SwitchBrew:
+      0x10/0x20/0x30 : FileOffset, MemoryOffset, Size(uncompressed) per segmen
+      0x3C           : BssSize
+      0x60/0x64/0x68 : compressed size per segmen
+      0x0C           : flags (bit0-2 compress, bit3-5 hash-check)
+    """
     if data[:4] != b'NSO0':
         raise ValueError('bukan NSO (magic %r)' % data[:4])
     flags = struct.unpack_from('<I', data, 0x0C)[0]
     segs = []
+    # triple per segmen: @0x10 (.text), @0x20 (.ro), @0x30 (.data) — stride 0x10
+    # (di antara triple ada gap utk ModuleNameOffset/Size @0x1C/0x2C)
     for si, name in enumerate(('.text', '.ro', '.data')):
-        mem_off, file_off, fsize = struct.unpack_from('<III', data, 0x10 + 12 * si)
-        # section header di 0x60 + 0x10*si: +0 mem_off, +4 size (uncompressed)
-        sec_mem_off, real_size = struct.unpack_from('<II', data, 0x60 + 0x10 * si)
+        file_off, mem_off, size = struct.unpack_from('<III', data, 0x10 + 0x10 * si)
+        comp_size = struct.unpack_from('<I', data, 0x60 + 4 * si)[0]
         compressed = bool(flags & (1 << si))
-        segs.append({'name': name, 'mem_off': mem_off, 'file_off': file_off,
-                     'fsize': fsize, 'size': real_size if compressed else fsize,
+        segs.append({'name': name, 'file_off': file_off, 'mem_off': mem_off,
+                     'size': size, 'comp_size': comp_size if compressed else size,
                      'compressed': compressed})
-    bss_size = struct.unpack_from('<I', data, 0x34)[0]
+    bss_size = struct.unpack_from('<I', data, 0x3C)[0]
     return {'flags': flags, 'segs': segs, 'bss_size': bss_size}
 
 
 def nso_decompress(data: bytes):
-    """NSO -> image memori (segmen di offset memori masing-masing + bss nol)."""
+    """NSO -> image memori (segmen di MemoryOffset masing-masing + bss nol)."""
     info = nso_parse(data)
     total = max(s['mem_off'] + s['size'] for s in info['segs']) + info['bss_size']
     img = bytearray(total)
     for s in info['segs']:
-        raw = data[s['file_off']:s['file_off'] + s['fsize']]
+        raw = data[s['file_off']:s['file_off'] + s['comp_size']]
         if s['compressed']:
             raw = lz4_block_decompress(raw, s['size'])
         img[s['mem_off']:s['mem_off'] + s['size']] = raw
@@ -188,31 +214,28 @@ def nso_decompress(data: bytes):
 
 
 def nso_build_uncompressed(img: bytes, info: dict) -> bytes:
-    """Image memori -> NSO tanpa kompresi (flags & verifikasi hash dibersihkan)."""
+    """Image memori -> NSO tanpa kompresi (flags=0: tak ada LZ4 & tak ada cek hash)."""
     hdr = bytearray(0x100)
     hdr[0:4] = b'NSO0'
-    struct.pack_into('<I', hdr, 0x0C, 0)  # flags=0: tanpa kompresi & tanpa cek hash
+    struct.pack_into('<I', hdr, 0x0C, 0)  # flags=0
     fo = 0x100
     for si, s in enumerate(info['segs']):
         mem_off, size = s['mem_off'], s['size']
-        struct.pack_into('<III', hdr, 0x10 + 12 * si, mem_off, fo, size)
-        # section header: dst offset + ukuran asli
-        struct.pack_into('<II', hdr, 0x60 + 0x10 * si, mem_off, size)
-        # PENTING: zero-pad sampai fo dulu — slice-assign di bytearray dengan
-        # start > len() malah menambah di ujung (menyebabkan file bergeser)
-        if len(hdr) < fo:
+        struct.pack_into('<III', hdr, 0x10 + 0x10 * si, fo, mem_off, size)
+        struct.pack_into('<I', hdr, 0x60 + 4 * si, size)  # comp size = size (tak dipakai)
+        if len(hdr) < fo:  # jaga-jaga (harusnya tidak terjadi, fo mulai 0x100)
             hdr.extend(b'\x00' * (fo - len(hdr)))
         hdr[fo:fo + size] = img[mem_off:mem_off + size]
         fo += size
         if fo % 0x10:
             fo += 0x10 - (fo % 0x10)
-    struct.pack_into('<I', hdr, 0x34, info['bss_size'])
+    struct.pack_into('<I', hdr, 0x3C, info['bss_size'])
     return bytes(hdr[:fo])
 
 
-def load_main_image():
-    """Baca dump main. Return (image_bytes, is_nso, info_or_None, path)."""
-    path = find_main()
+def load_main_image(dump_dir: str = None, log=print):
+    """Baca dump main. Return (image, is_nso, info_or_None, path)."""
+    path = _find_main(dump_dir or DUMP_DIR)
     if not path:
         return None, False, None, None
     data = open(path, 'rb').read()
@@ -220,6 +243,42 @@ def load_main_image():
         img, info = nso_decompress(data)
         return img, True, info, path
     return data, False, None, path
+
+
+def scan_image(image: bytes, csv_path: str):
+    """Scan string CSV pada image. Return list hit (dict)."""
+    rows = _load_csv(csv_path)
+    return find_hits(image, [(jp, idn) for jp, idn, _k in rows]), rows
+
+
+def apply_to_image(image: bytes, csv_path: str, log=print):
+    """Terapkan terjemahan CSV pada image (bytes). Return (image_baru, total, skipped)."""
+    rows = [(jp, idn, k) for jp, idn, k in _load_csv(csv_path) if idn]
+    if not rows:
+        return bytes(image), 0, ['Tidak ada terjemahan di CSV: %s' % csv_path]
+    data = bytearray(image)
+    rows = sorted(rows, key=lambda r: len(r[0]), reverse=True)  # potongan panjang dulu
+    total, skipped = 0, []
+    for jp, idn, _k in rows:
+        for enc in ('utf-8', 'shift_jis', 'utf-16-le'):
+            nb = jp.encode(enc)
+            count = 0
+            while True:
+                idx = bytes(data).find(nb)
+                if idx < 0:
+                    break
+                try:
+                    repl = pad_to_bytes(idn, len(nb), enc)
+                except ValueError as e:
+                    skipped.append(str(e))
+                    break
+                data[idx:idx + len(nb)] = repl
+                count += 1
+                total += 1
+            if count:
+                log('[OK] %r -> %r x%d [%s] (slot %d byte dipertahankan)'
+                    % (jp, idn, count, enc, len(nb)))
+    return bytes(data), total, skipped
 
 
 # ============================ pencarian & patch ============================
@@ -287,54 +346,65 @@ def cmd_scan():
     return 0
 
 
-def cmd_apply():
+def patch_dump(dump_dir: str, csv_path: str, out_dir: str, log=print) -> dict:
+    """API programatik utk GUI/builder: scan+apply dump main di dump_dir.
+    Return {'ok', 'total', 'skipped', 'out', 'reason'}."""
+    img, is_nso, info, path = load_main_image(dump_dir, log=log)
+    if img is None:
+        log('[LEWATI] Tidak ada dump main di %s (dump ExeFS dulu bila mau menerjemahkan'
+            ' pesan info)' % dump_dir)
+        return {'ok': False, 'total': 0, 'skipped': [], 'out': None, 'reason': 'no-dump'}
+    log('[ExeFS] Sumber : %s (%.1f MB)%s' % (path, os.path.getsize(path) / 1048576,
+                                             ' [NSO]' if is_nso else ''))
+    new_img, total, skipped = apply_to_image(img, csv_path, log=log)
+    if not total:
+        for s in sorted(set(skipped)):
+            log('[SKIP]', s)
+        return {'ok': False, 'total': 0, 'skipped': skipped, 'out': None,
+                'reason': 'no-match (jalankan scan dulu / isi CSV)'}
+    for s in sorted(set(skipped)):
+        log('[SKIP]', s)
+    os.makedirs(out_dir, exist_ok=True)
+    out = os.path.join(out_dir, 'main')
+    if is_nso:
+        open(out, 'wb').write(nso_build_uncompressed(new_img, info))
+        log('[ExeFS] NSO ditulis ulang tanpa kompresi (flags dibersihkan).')
+    else:
+        open(out, 'wb').write(new_img)
+    log('[ExeFS] SELESAI: %d penggantian -> %s' % (total, out))
+    return {'ok': True, 'total': total, 'skipped': skipped, 'out': out, 'reason': None}
+
+
+def cmd_scan():
     img, is_nso, info, path = load_main_image()
     if img is None:
-        print('[ERROR] Tidak menemukan dump main di', DUMP_DIR)
+        print('[ERROR] Tidak menemukan %s/{main,main.bin,main.elf}' % DUMP_DIR)
+        print('        Dump ExeFS game-mu dulu, lalu taruh file "main" di situ.')
         return 1
-    rows = [r for r in load_csv() if r[1]]  # hanya yang terjemahannya diisi
-    if not rows:
-        print('[KOSONG] Tidak ada terjemahan di CSV (%s).' % CSV_PATH)
+    rows = load_csv()
+    print('File   : %s (%.1f MB)%s' % (path, os.path.getsize(path) / 1048576,
+                                        '  [NSO ter-dekompresi otomatis]' if is_nso else ''))
+    print('CSV    : %s (%d entri)' % (CSV_PATH, len(rows)))
+    hits = find_hits(img, [(jp, idn) for jp, idn, _k in rows])
+    if not hits:
+        print('[TIDAK KETEMU] Tidak ada string dari CSV di dump ini.')
         return 1
-    data = bytearray(img)
-    rows = sorted(rows, key=lambda r: len(r[0]), reverse=True)  # panjang dulu
-    os.makedirs(OUT_DIR, exist_ok=True)
-    total = 0
-    skipped = []
-    for jp, idn, _k in rows:
-        for enc in ('utf-8', 'shift_jis', 'utf-16-le'):
-            nb = jp.encode(enc)
-            count = 0
-            while True:
-                idx = bytes(data).find(nb)
-                if idx < 0:
-                    break
-                try:
-                    repl = pad_to_bytes(idn, len(nb), enc)
-                except ValueError as e:
-                    skipped.append(str(e))
-                    break
-                data[idx:idx + len(nb)] = repl
-                count += 1
-                total += 1
-            if count:
-                print('[OK] %r -> %r x%d [%s] (slot %d byte dipertahankan)' % (jp, idn, count, enc, len(nb)))
-    if not total:
-        print('[TIDAK ADA] Tidak ada string CSV yang cocok — jalankan "scan" dulu.')
-        for s in set(skipped):
-            print('  [SKIP]', s)
-        return 1
-    for s in sorted(set(skipped)):
-        print('[SKIP]', s)
-    out = os.path.join(OUT_DIR, 'main')
-    if is_nso:
-        # kembalikan sebagai NSO tanpa kompresi (valid dimuat emulator/Atmosphere)
-        open(out, 'wb').write(nso_build_uncompressed(bytes(data), info))
-        print('[i] NSO ditulis ulang tanpa kompresi (flags dibersihkan).')
-    else:
-        open(out, 'wb').write(bytes(data))
+    print('Ditemukan %d lokasi:\n' % len(hits))
+    for h in hits:
+        tr = next((i for jp, i, _k in rows if jp == h['term']), '')
+        status = 'TERJEMAHAN: %r' % tr if tr else '(terjemahan kosong — isi CSV dulu)'
+        print('  offset 0x%08X [%s] kunci=%r  %s' % (h['offset'], h['enc'], h['term'], status))
+        print('      ctx: %r' % h['ctx'])
     print()
-    print('[SELESAI] %d penggantian. Hasil patch: %s' % (total, out))
+    print('Edit terjemahan di CSV: %s' % CSV_PATH)
+    print('Lalu jalankan: python exefs_patch_tool.py apply')
+    return 0
+
+
+def cmd_apply():
+    res = patch_dump(DUMP_DIR, CSV_PATH, OUT_DIR)
+    if not res['ok']:
+        return 1
     print()
     print('CARA PASANG (pilih salah satu):')
     print('  Eden/emulator : salin sebagai %APPDATA%\\eden\\exefs\\010081E0161B2000\\main')

@@ -21,6 +21,7 @@ from pathlib import Path
 import nexas_tool
 import ui_translation_tool
 import build_full_patch
+import exefs_patch_tool
 
 class NeXASGUI(tk.Tk):
     def __init__(self):
@@ -258,7 +259,7 @@ class NeXASGUI(tk.Tk):
         tk.Entry(panel, textvariable=self.ui_png_var, font=("Segoe UI", 9), bg="#1e1e24", fg="#ffffff", insertbackground="white", bd=1, relief="solid").grid(row=5, column=0, sticky="ew", padx=(0, 6), pady=(0, 10))
         ttk.Button(panel, text="Folder...", style="Browse.TButton", command=lambda: self.browse_folder(self.ui_png_var)).grid(row=5, column=1, sticky="w", pady=(0, 10))
 
-        # Tombol aksi (6 mode)
+        # Tombol aksi (6 mode + ExeFS)
         actions = tk.Frame(panel, bg="#282932")
         actions.grid(row=6, column=0, columnspan=2, sticky="ew")
         actions.columnconfigure((0, 1, 2), weight=1)
@@ -275,6 +276,8 @@ class NeXASGUI(tk.Tk):
         add_btn("Apply Config (CSV -> .datu8)", 0, self.run_ui_apply_config)
         add_btn("Apply SPM (CSV -> .spm)", 1, self.run_ui_apply_spm)
         add_btn("Pack PNG (edited -> patch)", 2, self.run_ui_pack_png, primary=False)
+        add_btn("Scan ExeFS (pesan info)", 0, self.run_ui_scan_exefs, primary=False)
+        add_btn("ExeFS Apply (CSV -> main)", 1, self.run_ui_apply_exefs, primary=False)
 
         hint = ttk.Label(panel, text=(
             "Alur kerja: Extract UI -> isi kolom 'indonesian_translation' di CSV -> Apply Config / Apply SPM.\n"
@@ -284,6 +287,35 @@ class NeXASGUI(tk.Tk):
         hint.configure(foreground="#adb5bd", font=("Segoe UI", 8))
 
         panel.columnconfigure(0, weight=1)
+
+    def run_ui_scan_exefs(self):
+        def task():
+            self.log("[*] Scan ExeFS: mencari string pesan info di scratch/exefs_dump/main ...")
+            rc = exefs_patch_tool.cmd_scan()
+            if rc == 0:
+                self.log("[+] Scan selesai. Edit scratch/exefs_messages.csv bila ingin revisi.")
+        self.ui_thread(self.ui_buttons["Scan"], "Scan ExeFS...", task)
+
+    def run_ui_apply_exefs(self):
+        def task():
+            self.log("[*] ExeFS Apply: menerapkan CSV pesan info ke dump main ...")
+            res = exefs_patch_tool.patch_dump(
+                str(Path(os.getcwd()) / "scratch" / "exefs_dump"),
+                str(Path(os.getcwd()) / "scratch" / "exefs_messages.csv"),
+                str(Path(os.getcwd()) / "scratch" / "exefs_patch"))
+            if res["ok"]:
+                eden_main = Path(os.environ.get("APPDATA", "")) / "eden" / "exefs" / "010081E0161B2000" / "main"
+                if Path(os.environ.get("APPDATA", "")).joinpath("eden").exists():
+                    import shutil
+                    eden_main.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(res["out"], eden_main)
+                    self.log("[+] Terpasang ke Eden: %s" % eden_main)
+                    messagebox.showinfo("Sukses", "ExeFS patch terpasang ke Eden!\n%s\n\n%d penggantian." % (eden_main, res["total"]))
+                else:
+                    messagebox.showinfo("Sukses", "Patch dibuat: %s\n(salin manual ke folder exefs emulator)" % res["out"])
+            else:
+                messagebox.showwarning("Tidak dipatch", res["reason"] or "Tidak ada yang diganti.")
+        self.ui_thread(self.ui_buttons["ExeFS"], "ExeFS Apply...", task)
 
     def ui_thread(self, btn, status, task):
         btn.config(state="disabled")
@@ -389,7 +421,8 @@ class NeXASGUI(tk.Tk):
                 "ui-spm": "UI Layout (.spm)",
                 "ui-png": "UI Tekstur (PNG)",
                 "video": "Video Lirik OP (Movie/4fd_op.mp4)",
-            }[key]
+                "exefs": "Pesan Info ExeFS (dump milikmu)",
+            }.get(key, key)
             tk.Checkbutton(comp_frame, text=label, variable=var, bg="#282932", fg="#f8f9fa", selectcolor="#1e1e24", activebackground="#282932", activeforeground="#ffffff").grid(row=0, column=i, sticky="w", padx=8)
 
         # CSV terjemahan (config & spm) untuk komponen UI
@@ -422,8 +455,9 @@ class NeXASGUI(tk.Tk):
 
         hint = ttk.Label(panel, text=(
             "Menggabungkan SEMUA terjemahan ke satu patch: scenario (.binu8 dari tab Insert), UI datu8/SPM\n"
-            "(CSV di atas), PNG hasil edit, dan video lirik OP — dalam satu folder LayeredFS.\n"
-            "Komponen yang sumbernya kosong dilewati; yang sudah di-Apply manual tetap aman di folder patch."))
+            "(CSV di atas), PNG hasil edit, video lirik OP, dan pesan info ExeFS (dump di scratch/exefs_dump,\n"
+            "terjemahan di scratch/exefs_messages.csv) — komponen yang sumbernya kosong dilewati.\n"
+            "Hasil ExeFS TIDAK ikut ZIP distribusi (kode berhak cipta), hanya dipasang ke emulator lokal."))
         hint.grid(row=12, column=0, columnspan=2, sticky="w", pady=(10, 0))
         hint.configure(foreground="#adb5bd", font=("Segoe UI", 8))
 
