@@ -17,7 +17,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
 
-# Import engine logic from nexas_tool
+# Import engine logic dari paket src/nexas (implementasi) via wrapper root.
 import nexas_tool
 import ui_translation_tool
 import build_full_patch
@@ -515,15 +515,13 @@ class NeXASGUI(tk.Tk):
         args.video = self.bp_video_var.get().strip() or None
         args.zip = self.bp_zip_var.get()
         args.install = self.bp_install_var.get()
-        # ExeFS: file main pilihan user dipindah sementara ke scratch/exefs_dump
+        # ExeFS: file main pilihan user dipakai untuk patch.
+        # PENTING: JANGAN menimpa dump asli scratch/exefs_dump/main — dulu ini
+        # merusak dump (tertimpa hasil patch). Pakai patch_dump() langsung pada
+        # file pilihan user, tanpa menyentuh folder dump.
         main_sel = self.bp_exefs_main_var.get().strip()
         dump_dir = Path(os.getcwd()) / "scratch" / "exefs_dump"
-        if main_sel and os.path.isfile(main_sel):
-            import shutil
-            dump_dir.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(main_sel, dump_dir / "main")
-            self.log("[i] File main dipakai dari: %s" % main_sel)
-        args.exefs_dump = str(dump_dir)
+        args.exefs_dump = main_sel if (main_sel and os.path.isfile(main_sel)) else str(dump_dir)
         args.exefs_csv = self.bp_exefs_csv_var.get().strip() or str(Path(os.getcwd()) / "scratch" / "exefs_messages.csv")
         args.exefs_out = str(Path(os.getcwd()) / "scratch" / "exefs_patch")
 

@@ -20,7 +20,7 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent  # root repo (file ini di src/)
 EXTRACTED = BASE / 'NSPModMaker.exe_extracted'
 PYC = EXTRACTED / 'build_modded_nsp_gui.pyc'
 

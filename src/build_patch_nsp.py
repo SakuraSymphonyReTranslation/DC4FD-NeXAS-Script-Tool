@@ -15,7 +15,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8')
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent  # root repo (file ini di src/)
 
 # Lokasi default penting
 DEFAULT_BASE_NSP = Path(r"H:\Games\Eden-Windows-v0.2.0-rc2-amd64-msvc-standard\DC3\D C 4 Fortunate Departures ～ダ・カーポ4～ フォーチュネイトデパーチャーズ [010081E0161B2000][v0][Base]\D C 4 Fortunate Departures ～ダ・カーポ4～ フォーチュネイトデパーチャーズ [010081E0161B2000][v0][Base].nsp")

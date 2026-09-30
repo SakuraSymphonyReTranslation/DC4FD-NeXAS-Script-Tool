@@ -174,17 +174,31 @@ Catatan:
 ### 📁 Struktur Berkas Repositori
 
 ```text
-├── nexas_tool.py                  # Engine inti ekstraksi, injeksi, parsing opcode & word wrap
-├── script_auto_wrap.py            # Modul algoritma pembungkus baris teks CJK/Fullwidth
+├── nexas_tool.py                  # Wrapper CLI naskah (implementasi: src/nexas/)
+├── ui_translation_tool.py         # Wrapper tool UI (.datu8/.spm) + audit & pack PNG
+├── exefs_patch_tool.py            # Wrapper patcher pesan info ExeFS (scan/apply/discover)
+├── build_full_patch.py            # Wrapper builder patch lengkap (scenario+UI+video+ExeFS)
+├── build_release_packages.py      # Wrapper pembuat 3 paket ZIP rilis multi-platform
 ├── gui.py                         # Aplikasi visual Tkinter dengan dark theme & preset wrap
 ├── run_gui.bat                    # Launcher praktis 1-klik untuk GUI di Windows
 ├── update_patch.bat               # Script batch otomatisasi deployment patch & packaging ZIP
-├── build_release_packages.py      # Membangun 3 paket ZIP rilis multi-platform
 ├── installer.bat                  # Installer 1-klik (ikut di dalam paket ZIP emulator)
-├── ui_translation_tool.py         # Ekstrak/terapkan teks UI (.datu8/.spm) + audit & pack PNG UI
-├── build_full_patch.py            # Builder patch lengkap: scenario + UI + video → 1 patch
+├── src/
+│   ├── __init__.py                # Bootstrap path root untuk paket
+│   ├── nexas/                     # SEMUA implementasi tool (paket Python utama)
+│   │   ├── nexas_tool.py          # Engine inti ekstraksi, injeksi, parsing opcode & word wrap
+│   │   ├── script_auto_wrap.py    # Modul algoritma pembungkus baris teks CJK/Fullwidth
+│   │   ├── ui_translation_tool.py # Ekstrak/terapkan teks UI (.datu8/.spm) + audit & pack PNG
+│   │   ├── exefs_patch_tool.py    # Patcher pesan info pojok kiri-bawah (ExeFS/NSO LZ4)
+│   │   ├── build_full_patch.py    # Builder patch lengkap: scenario + UI + video → 1 patch
+│   │   └── build_release_packages.py  # Membangun 3 paket ZIP rilis multi-platform
+│   ├── build_patch_nsp.py         # Pembuatan NSP patch standalone (opsional)
+│   └── build_nsp_headless.py      # Runner headless NSP Mod Maker
+├── tests/                         # Script test & eksperimen parsing
 ├── README_UI_TRANSLATION.md       # Panduan terjemahan UI (peta file, alur kerja, checklist)
 ├── docs/
+│   ├── PANDUAN_EXEFS_CSV.md       # Panduan workflow CSV ExeFS (scan→isi→apply→discover)
+│   ├── EXEFS_CSV_GUIDE_EN.md      # ExeFS CSV workflow guide (English)
 │   ├── SPEK_ENCODE_VIDEO.md       # Spesifikasi encode video Movie NeXAS (Indonesia)
 │   └── SPEK_ENCODE_VIDEO_EN.md    # Movie encode spec (English)
 ├── romfs/
@@ -216,12 +230,15 @@ di area ExeFS). Cara menerjemahkannya secara mandiri:
 3. Edit terjemahan secara manual di **`scratch/exefs_messages.csv`**
    (kolom: `japanese_text`, `indonesian_translation`, `keterangan`; template otomatis dibuat
    saat tool pertama kali dijalankan — boleh menambah baris sendiri; terjemahan kosong = hanya dicari, tidak diganti).
-3. Jalankan:
+   👉 Panduan lengkap workflow CSV (aturan batas byte, aspek JP, discover, troubleshooting):
+   **[docs/PANDUAN_EXEFS_CSV.md](docs/PANDUAN_EXEFS_CSV.md)**.
+4. Jalankan:
    ```bash
-   python exefs_patch_tool.py scan    # temukan string pesan info di binary
-   python exefs_patch_tool.py apply   # ganti dengan terjemahan (panjang byte sama, dipad spasi)
+   python exefs_patch_tool.py scan      # temukan string pesan info di binary
+   python exefs_patch_tool.py discover  # (opsional) tambah string JP baru ke CSV
+   python exefs_patch_tool.py apply     # ganti dengan terjemahan (panjang byte sama, dipad spasi)
    ```
-4. Hasil patch tersimpan di `scratch/exefs_patch/main`. Pasang sebagai ExeFS mod:
+5. Hasil patch tersimpan di `scratch/exefs_patch/main`. Pasang sebagai ExeFS mod:
    - Eden/emulator: `%APPDATA%\eden\exefs\010081E0161B2000\main`
    - Atmosphere: `atmosphere/exefs/010081E0161B2000/main`
 
@@ -407,17 +424,31 @@ Notes:
 ### 📁 Repository Layout
 
 ```text
-├── nexas_tool.py                  # Core engine: extraction, injection, opcode parsing, word wrap
-├── script_auto_wrap.py            # CJK/fullwidth-aware line wrapping module
+├── nexas_tool.py                  # Script CLI wrapper (implementation: src/nexas/)
+├── ui_translation_tool.py         # UI tool wrapper (.datu8/.spm) + PNG audit & pack
+├── exefs_patch_tool.py            # ExeFS message patcher wrapper (scan/apply/discover)
+├── build_full_patch.py            # Full patch builder wrapper (scenario+UI+video+ExeFS)
+├── build_release_packages.py      # Release ZIP builder wrapper (3 multi-platform packs)
 ├── gui.py                         # Tkinter GUI app with dark theme & wrap presets
 ├── run_gui.bat                    # 1-click GUI launcher for Windows
 ├── update_patch.bat               # Batch script: patch deployment automation & ZIP packaging
-├── build_release_packages.py      # Builds the 3 multi-platform release zips
 ├── installer.bat                  # 1-click installer (ships inside the emulator zip)
-├── ui_translation_tool.py         # Extract/apply UI text (.datu8/.spm) + UI PNG audit & pack
-├── build_full_patch.py            # Full patch builder: scenario + UI + video → 1 patch
+├── src/
+│   ├── __init__.py                # Repo-root path bootstrap for the package
+│   ├── nexas/                     # ALL tool implementations (main Python package)
+│   │   ├── nexas_tool.py          # Core engine: extraction, injection, opcode parsing, word wrap
+│   │   ├── script_auto_wrap.py    # CJK/fullwidth-aware line wrapping module
+│   │   ├── ui_translation_tool.py # Extract/apply UI text (.datu8/.spm) + UI PNG audit & pack
+│   │   ├── exefs_patch_tool.py    # Bottom-left info message patcher (ExeFS/LZ4 NSO)
+│   │   ├── build_full_patch.py    # Full patch builder: scenario + UI + video → 1 patch
+│   │   └── build_release_packages.py  # Builds the 3 multi-platform release zips
+│   ├── build_patch_nsp.py         # Standalone NSP patch creation (optional)
+│   └── build_nsp_headless.py      # Headless NSP Mod Maker runner
+├── tests/                         # Test & parsing experiment scripts
 ├── README_UI_TRANSLATION.md       # UI translation guide (file map, workflow, checklist)
 ├── docs/
+│   ├── PANDUAN_EXEFS_CSV.md       # ExeFS CSV workflow guide (Indonesian)
+│   ├── EXEFS_CSV_GUIDE_EN.md      # ExeFS CSV workflow guide (English)
 │   ├── SPEK_ENCODE_VIDEO.md       # Spesifikasi encode video Movie NeXAS (Indonesian)
 │   └── SPEK_ENCODE_VIDEO_EN.md    # NeXAS movie encode spec (H.264 Main@L4.1, AAC-LC)
 ├── romfs/
@@ -449,12 +480,15 @@ in the RomFS `.datu8`/`.spm`/`.png` files; it is embedded in the **game executab
 3. Edit translations manually in **`scratch/exefs_messages.csv`**
    (columns: `japanese_text`, `indonesian_translation`, `keterangan`; a template is created
    automatically on first run — you may add your own rows; an empty translation = search only, no replace).
-3. Run:
+   👉 Full CSV workflow guide (byte budget rules, JP aspect, discover, troubleshooting):
+   **[docs/EXEFS_CSV_GUIDE_EN.md](docs/EXEFS_CSV_GUIDE_EN.md)**.
+4. Run:
    ```bash
-   python exefs_patch_tool.py scan    # locate info message strings in the binary
-   python exefs_patch_tool.py apply   # replace with translations (same byte length, space-padded)
+   python exefs_patch_tool.py scan      # locate info message strings in the binary
+   python exefs_patch_tool.py discover  # (optional) append newly found JP strings to the CSV
+   python exefs_patch_tool.py apply     # replace with translations (same byte length, space-padded)
    ```
-4. The patched result is written to `scratch/exefs_patch/main`. Install it as an ExeFS mod:
+5. The patched result is written to `scratch/exefs_patch/main`. Install it as an ExeFS mod:
    - Eden/emulators: `%APPDATA%\eden\exefs\010081E0161B2000\main`
    - Atmosphere: `atmosphere/exefs/010081E0161B2000/main`
 
