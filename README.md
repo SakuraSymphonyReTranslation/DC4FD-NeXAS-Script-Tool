@@ -5,17 +5,46 @@
   <a href="#-english-version">🇬🇧 English</a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/SakuraSymphonyReTranslation/DC4FD-NeXAS-Script-Tool/releases/tag/v1.0.0"><img src="https://img.shields.io/github/v/release/SakuraSymphonyReTranslation/DC4FD-NeXAS-Script-Tool?sort=semver&label=release&color=6aa9ff" alt="Release"></a>
+  <img src="https://img.shields.io/badge/engine-Circus%20NeXAS%20(Switch)-8f7cc9" alt="Engine: Circus NeXAS (Switch)">
+  <img src="https://img.shields.io/badge/game-D.C.4%20Fortunate%20Departures-e58fb1" alt="Game: D.C.4 Fortunate Departures">
+  <img src="https://img.shields.io/badge/TID-010081E0161B2000-9aa5b1" alt="Title ID">
+  <img src="https://img.shields.io/badge/python-3.8%2B-4a90d9?logo=python&logoColor=white" alt="Python 3.8+">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Switch%20%7C%20Android-lightgrey" alt="Platform">
+  <img src="https://img.shields.io/badge/docs-ID%20%7C%20EN-success" alt="Docs: ID | EN">
+  <img src="https://img.shields.io/badge/license-non--komersial-orange" alt="License: non-komersial">
+</p>
+
+---
+
+## 📑 Daftar Isi (Bilingual)
+
+| 🇮🇩 Bahasa Indonesia | 🇬🇧 English |
+|---|---|
+| [🌟 Fitur Utama](#-fitur-utama) | [✨ Key Features](#-key-features) |
+| [📋 Persyaratan Sistem](#-persyaratan-sistem) | [📋 Requirements](#-requirements) |
+| [🚀 Panduan Penggunaan](#-panduan-penggunaan) | [🚀 Usage Guide](#-usage-guide) |
+| [📐 Batas Word Wrap (56 Kolom)](#-penjelasan-batas-word-wrap-mengapa-56-kolom) | [📐 56-Column Wrap Limit](#-why-the-56-column-wrap-limit) |
+| [📁 Struktur Berkas Repositori](#-struktur-berkas-repositori) | [📁 Repository Layout](#-repository-layout) |
+| [⚠️ Peringatan Hukum](#-peringatan-hukum-disclaimer) | [⚠️ Legal Disclaimer](#-legal-disclaimer) |
+| [🔧 Pesan Info ExeFS](#-menerjemahkan-pesan-info-pojok-kiri-bawah-dump-exefs-manual) | [🔧 ExeFS Info Messages](#-translating-the-bottom-left-info-messages-manual-exefs-dump) |
+| [📚 Panduan Detail](#-panduan-detail-terkait) | [📚 Detailed Guides](#-detailed-guides-related-docs) |
+| [🌸 Kredit & Lisensi](#-kredit--lisensi) | [🌸 Credits & License](#-credits--license) |
+
 ---
 
 <a id="-versi-bahasa-indonesia"></a>
 
 ## 🇮🇩 Versi Bahasa Indonesia
 
-> 🌐 Pilih bahasa: [🇮🇩 Bahasa Indonesia](#-versi-bahasa-indonesia) · [🇬🇧 English](#-english-version)
+> 🌐 Pilih bahasa: [🇮🇩 Bahasa Indonesia](#-versi-bahasa-indonesia) · [🇬🇧 English](#-english-version) · [📑 Daftar isi](#-daftar-isi-bilingual)
 
 Toolkit ekstraksi dan injeksi naskah skrip visual novel berbasis engine **Circus NeXAS** untuk **Da Capo 4 Fortunate Departures (D.C.4 FD)** versi Nintendo Switch (Title ID: `010081E0161B2000`).
 
 Dilengkapi dengan algoritma **Smart Character-Width Aware Word Wrapping**, **Chained Dialogue Cursor Tracking**, serta **Konfigurasi Font Kustom** (`system.datu8`) untuk mencegah teks meluber, terpotong, atau bertumpuk di layar konsol Nintendo Switch maupun emulator.
+
+**Isi bagian ini:** [Fitur](#-fitur-utama) · [Persyaratan](#-persyaratan-sistem) · [Panduan](#-panduan-penggunaan) · [Word Wrap 56](#-penjelasan-batas-word-wrap-mengapa-56-kolom) · [Struktur Repo](#-struktur-berkas-repositori) · [Disclaimer](#-peringatan-hukum-disclaimer) · [ExeFS](#-menerjemahkan-pesan-info-pojok-kiri-bawah-dump-exefs-manual) · [Panduan Detail](#-panduan-detail-terkait) · [Kredit](#-kredit--lisensi)
 
 ---
 
@@ -245,6 +274,16 @@ di area ExeFS). Cara menerjemahkannya secara mandiri:
 > Catatan: tool ini hanya menyentuh **string pesan UI** — bukan kode program — dan selalu
 > menjaga panjang byte asli (padding spasi) agar tidak merusak struktur executable.
 
+### 📚 Panduan Detail (Terkait)
+
+| Dokumen | Isi |
+|---|---|
+| [docs/PANDUAN_EXEFS_CSV.md](docs/PANDUAN_EXEFS_CSV.md) 🇮🇩 | Workflow CSV ExeFS: scan → isi → discover → apply → pasang, aturan batas byte, troubleshooting |
+| [docs/EXEFS_CSV_GUIDE_EN.md](docs/EXEFS_CSV_GUIDE_EN.md) 🇬🇧 | English version of the ExeFS CSV workflow guide |
+| [README_UI_TRANSLATION.md](README_UI_TRANSLATION.md) 🇮🇩 | Peta file UI RomFS (.datu8/.spm), alur kerja terjemahan UI, checklist |
+| [README_UI_TRANSLATION_EN.md](README_UI_TRANSLATION_EN.md) 🇬🇧 | English version of the UI translation guide |
+| [docs/SPEK_ENCODE_VIDEO.md](docs/SPEK_ENCODE_VIDEO.md) 🇮🇩 / [EN](docs/SPEK_ENCODE_VIDEO_EN.md) | Spesifikasi encode video OP (H.264 Main@L4.1, AAC-LC) |
+
 ---
 
 ### 🌸 Kredit & Lisensi
@@ -269,6 +308,8 @@ Bebas digunakan dan dimodifikasi untuk keperluan non-komersial dan pelestarian v
 A toolkit for extracting and injecting script text from visual novels built on the **Circus NeXAS** engine — made for **Da Capo 4 Fortunate Departures (D.C.4 FD)** on Nintendo Switch (Title ID: `010081E0161B2000`).
 
 It ships with a **Smart Character-Width Aware Word Wrapping** algorithm, **Chained Dialogue Cursor Tracking**, and a **Custom Font Configuration** (`system.datu8`) to keep translated text from overflowing, getting cut off mid-word, or overlapping on the Switch screen or in emulators.
+
+**In this section:** [Features](#-key-features) · [Requirements](#-requirements) · [Usage](#-usage-guide) · [56-Column Wrap](#-why-the-56-column-wrap-limit) · [Repo Layout](#-repository-layout) · [Disclaimer](#-legal-disclaimer) · [ExeFS](#-translating-the-bottom-left-info-messages-manual-exefs-dump) · [Detailed Guides](#-detailed-guides-related-docs) · [Credits](#-credits--license)
 
 ---
 
@@ -494,6 +535,16 @@ in the RomFS `.datu8`/`.spm`/`.png` files; it is embedded in the **game executab
 
 > Note: this tool only touches **UI message strings** — not program code — and always
 > preserves the original byte length (space padding) so the executable layout stays intact.
+
+### 📚 Detailed Guides (Related Docs)
+
+| Document | Content |
+|---|---|
+| [docs/EXEFS_CSV_GUIDE_EN.md](docs/EXEFS_CSV_GUIDE_EN.md) 🇬🇧 | ExeFS CSV workflow: scan → fill → discover → apply → install, byte-budget rules, troubleshooting |
+| [docs/PANDUAN_EXEFS_CSV.md](docs/PANDUAN_EXEFS_CSV.md) 🇮🇩 | Indonesian version of the ExeFS CSV workflow guide |
+| [README_UI_TRANSLATION_EN.md](README_UI_TRANSLATION_EN.md) 🇬🇧 | RomFS UI file map (.datu8/.spm), UI translation workflow, checklist |
+| [README_UI_TRANSLATION.md](README_UI_TRANSLATION.md) 🇮🇩 | Indonesian version of the UI translation guide |
+| [docs/SPEK_ENCODE_VIDEO_EN.md](docs/SPEK_ENCODE_VIDEO_EN.md) 🇬🇧 / [ID](docs/SPEK_ENCODE_VIDEO.md) | OP video encode spec (H.264 Main@L4.1, AAC-LC) |
 
 ---
 
