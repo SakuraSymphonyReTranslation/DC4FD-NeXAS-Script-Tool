@@ -213,6 +213,9 @@ di area ExeFS). Cara menerjemahkannya secara mandiri:
    yang sama seperti saat mengekstrak RomFS; file yang dibutuhkan: `main`, `main.npdm`).
 2. Salin hasil dump ke `scratch/exefs_dump/main` (folder ini sudah di-gitignore —
    **JANGAN pernah meng-upload file `main` ke mana pun**, itu kode berhak cipta).
+3. Edit terjemahan secara manual di **`scratch/exefs_messages.csv`**
+   (kolom: `japanese_text`, `indonesian_translation`, `keterangan`; template otomatis dibuat
+   saat tool pertama kali dijalankan — boleh menambah baris sendiri; terjemahan kosong = hanya dicari, tidak diganti).
 3. Jalankan:
    ```bash
    python exefs_patch_tool.py scan    # temukan string pesan info di binary
@@ -443,6 +446,9 @@ in the RomFS `.datu8`/`.spm`/`.png` files; it is embedded in the **game executab
    for RomFS; required files: `main`, `main.npdm`).
 2. Place the dump at `scratch/exefs_dump/main` (this folder is gitignored —
    **NEVER upload the `main` file anywhere**; it is copyrighted code).
+3. Edit translations manually in **`scratch/exefs_messages.csv`**
+   (columns: `japanese_text`, `indonesian_translation`, `keterangan`; a template is created
+   automatically on first run — you may add your own rows; an empty translation = search only, no replace).
 3. Run:
    ```bash
    python exefs_patch_tool.py scan    # locate info message strings in the binary
