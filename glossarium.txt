@@ -132,3 +132,5 @@
 [term] あんた = Kamu {never use "loe/luh", "gue", or "kau". use "kamu" and "aku" only.}
 [term] 恋愛請負人 = kontraktor cinta {person who takes on other people's love-related requests; Hiyori's former job. Use "kontraktor cinta" instead of "mak comblang", "makelar cinta", "Cupid-woman", "dokter cinta", or "renai ukeoinin"}
 [term] 恋愛請負 = jasa percintaan {the love-contracting service run by a 恋愛請負人 (kontraktor cinta); existing lines translate this variously as "jasa percintaan", "jasa perjodohan", "layanan jasa cinta", or "jasa perantara cinta"}
+[term] 彼 = dia {PRONOUN RULE: for a PERSON always use "dia", NEVER "ia"; "ia" is ONLY for inanimate/non-living things (wind, water, objects, etc.)}
+[term] 彼女 = dia {PRONOUN RULE: for a PERSON always use "dia", NEVER "ia"; "ia" is ONLY for inanimate/non-living things (wind, water, objects, etc.); means "girlfriend" in a clearly romantic context}
