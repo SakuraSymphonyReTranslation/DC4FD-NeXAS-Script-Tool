@@ -47,7 +47,7 @@ LINE = '=' * 79
 
 def count_glob(pattern: str) -> int:
     import glob
-    return len(glob.glob(pattern))
+    return len(glob.glob(pattern, recursive=True))
 
 
 def default_video() -> Path | None:
