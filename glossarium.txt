@@ -130,3 +130,5 @@
 [term] お前 = Kamu {never use "loe/luh", "gue", or "kau". use "kamu" and "aku" only.}
 [term] 君 = Kamu {never use "loe/luh", "gue", or "kau". use "kamu" and "aku" only.}
 [term] あんた = Kamu {never use "loe/luh", "gue", or "kau". use "kamu" and "aku" only.}
+[term] 恋愛請負人 = kontraktor cinta {person who takes on other people's love-related requests; Hiyori's former job. Use "kontraktor cinta" instead of "mak comblang", "makelar cinta", "Cupid-woman", "dokter cinta", or "renai ukeoinin"}
+[term] 恋愛請負 = jasa percintaan {the love-contracting service run by a 恋愛請負人 (kontraktor cinta); existing lines translate this variously as "jasa percintaan", "jasa perjodohan", "layanan jasa cinta", or "jasa perantara cinta"}
