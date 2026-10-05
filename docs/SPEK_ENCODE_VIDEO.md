@@ -26,13 +26,18 @@ Kesimpulan konsistensi: seluruh movie bawaan = **1920x1080, 24 fps, H.264 Main, 
 > ~9.8 Mbps) terbukti **terlalu berat untuk emulator di SoC mobile**
 > (Snapdragon 6 Gen 1 / Helio G99 pada Citron): decode-nya drop frame sehingga
 > lirik terasa telanjur dibanding audio. Target di bawah menggantikannya.
+>
+> ⚠️ **Revisi v2.1.** Resolusi **TIDAK boleh diturunkan**: engine NeXAS
+> menggambar movie **1:1 tanpa scaling** — video 720p tampil sebagai jendela
+> ±2/3 layar di pojok kiri-atas (terbukti di Citron). Keandalan decode
+> dikejar lewat **bitrate rendah + parameter decode ringan**, bukan resolusi.
 
 ```
-Codec video   : H.264, profile High, level 3.1
-Resolusi      : 1280x720 (engine meng-upscale ke layar; jauh lebih ringan didecode)
+Codec video   : H.264, profile High, level 4.0
+Resolusi      : 1920x1080 — WAJIB (engine menggambar 1:1, tidak men-scale)
 Pixel format  : yuv420p
 Frame rate    : MENGIKUTI SUMBER — tanpa `-r`, tanpa paksaan CFR (`-fps_mode passthrough`)
-Bitrate video : CRF 21 + maxrate 4M + bufsize 8M (hasil ±3–4 Mbps untuk OP musikal)
+Bitrate video : CRF 22 + maxrate 4M + bufsize 8M, x264 ref=2 bframes=2 (±3–4 Mbps)
 Codec audio   : AAC-LC, 48000 Hz, 2 channel, 160 kbps
 Container     : MP4, +faststart
 Duration      : sama dengan master (timing A/V tidak diubah sama sekali)
@@ -43,9 +48,9 @@ Duration      : sama dengan master (timing A/V tidak diubah sama sekali)
 ```bash
 ffmpeg -i 4fd_op_indo_master.mp4 ^
   -map 0:v:0 -map 0:a:0 ^
-  -vf "scale=1280:720:flags=lanczos" -fps_mode passthrough ^
-  -c:v libx264 -profile:v high -level 3.1 -preset slow -tune animation ^
-  -crf 21 -maxrate 4M -bufsize 8M -pix_fmt yuv420p ^
+  -fps_mode passthrough ^
+  -c:v libx264 -profile:v high -level 4.0 -preset medium -tune animation ^
+  -crf 22 -maxrate 4M -bufsize 8M -x264-params ref=2:bframes=2 -pix_fmt yuv420p ^
   -c:a aac -b:a 160k -ar 48000 -ac 2 ^
   -movflags +faststart ^
   -map_metadata -1 -fflags +bitexact -flags:v +bitexact -flags:a +bitexact ^
@@ -73,8 +78,10 @@ Catatan:
 - Struktur file 24 fps CFR lama sendiri **benar**: A/V `start_time` = 0,
   durasi A/V konsisten, dan **OP asli game juga 24 fps**. Uji cepat: kalau OP
   Jepang bawaan juga desinkron di Citron, penyebabnya 100% beban decode (bukan fps).
-- Encode 720p ±3–4 Mbps memangkas beban decode >4× → frame drop hilang,
-  lirik kembali sinkron tanpa menyentuh timing.
+- **Terverifikasi di Citron (SD 6 Gen 1)**: menurunkan bitrate 9.6 → ~3 Mbps
+  dengan profil High + `ref=2` membuat OP sinkron lagi, tanpa mengubah timing.
+  Resolusi tetap 1080p — video 720p uji tampil kecil di pojok kiri-atas
+  (engine menggambar movie 1:1 tanpa scaling).
 
 ---
 
@@ -84,15 +91,15 @@ Catatan:
   memaksa 24 fps atau mengikuti timestamp kontainer. (Pembanding: DC4 base game
   Switch memakai engine Shin dan OP-nya jalan tanpa cap fps.)
 - Untuk menguji, tersedia dua cara membuat varian **30 fps** dari master 24 fps:
-  - **Tes cepat (duplikasi frame, tanpa artefak, encode menit):** ganti filter jadi
-    `scale=1280:720:flags=lanczos,fps=30` — cukup untuk mengetahui perilaku engine.
+  - **Tes cepat (duplikasi frame, tanpa artefak, encode menit):** cukup tambahkan
+    filter `fps=30` (tanpa scale — resolusi harus tetap 1080p).
   - **Kualitas (interpolasi motion-compensated, encode lama):**
 
 ```bash
 ffmpeg -i 4fd_op_indo_master.mp4 ^
-  -vf "scale=1280:720:flags=lanczos,minterpolate=fps=30:mi_mode=mci:scd=fdiff:scd_threshold=10" ^
-  -c:v libx264 -profile:v high -level 3.1 -preset slow -tune animation ^
-  -crf 21 -maxrate 4M -bufsize 8M -pix_fmt yuv420p ^
+  -vf "minterpolate=fps=30:mi_mode=mci:scd=fdiff:scd_threshold=10" ^
+  -c:v libx264 -profile:v high -level 4.0 -preset medium -tune animation ^
+  -crf 22 -maxrate 4M -bufsize 8M -x264-params ref=2:bframes=2 -pix_fmt yuv420p ^
   -c:a aac -b:a 160k -ar 48000 -ac 2 ^
   -movflags +faststart ^
   -map_metadata -1 -fflags +bitexact -flags:v +bitexact -flags:a +bitexact ^

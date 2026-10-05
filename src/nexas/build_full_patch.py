@@ -181,8 +181,8 @@ def build(args) -> int:
             mb = vid.stat().st_size / (1024 * 1024)
             print('[OK]    Video     : %s (%.1f MB) -> %s' % (vid, mb, dst / VIDEO_NAME))
             print('        Catatan: pastikan encode sesuai docs/SPEK_ENCODE_VIDEO.md')
-            print('        (H.264 High@L3.1, 720p yuv420p, fps mengikuti sumber tanpa paksaan,')
-            print('         AAC-LC 48kHz stereo 160k — jangan pernah paksa -r 24).')
+            print('        (H.264 High@L4.0, 1080p yuv420p WAJIB — engine blit 1:1 tanpa scaling,')
+            print('         bitrate rendah ref=2, fps mengikuti sumber tanpa paksaan, AAC 160k).')
             summary.append('Video lirik OP : %s (%.1f MB)' % (VIDEO_NAME, mb))
         else:
             print('[LEWATI] Video : %s tidak ditemukan (opsional, wujudkan dulu di Movie/)' % VIDEO_NAME)

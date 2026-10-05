@@ -26,13 +26,18 @@ Consistency conclusion: all shipped movies are **1920x1080, 24 fps, H.264 Main, 
 > ~9.8 Mbps) proved **too heavy for emulators on mobile SoCs**
 > (Snapdragon 6 Gen 1 / Helio G99 on Citron): the decode drops frames, which
 > makes the lyrics appear late relative to the audio. The target below replaces it.
+>
+> ⚠️ **v2.1 revision.** Resolution **must not be lowered**: the NeXAS engine
+> blits movies **1:1 with no scaling** — a 720p video renders as a ~2/3-size
+> window anchored top-left (confirmed on Citron). Decode friendliness comes
+> from **low bitrate + light decode parameters**, not from resolution.
 
 ```
-Video codec   : H.264, profile High, level 3.1
-Resolution    : 1280x720 (the engine upscales to screen; far cheaper to decode)
+Video codec   : H.264, profile High, level 4.0
+Resolution    : 1920x1080 — MANDATORY (the engine blits 1:1, it does not scale)
 Pixel format  : yuv420p
 Frame rate    : FOLLOW THE SOURCE — no `-r`, no forced CFR (`-fps_mode passthrough`)
-Video bitrate : CRF 21 + maxrate 4M + bufsize 8M (±3–4 Mbps for a musical OP)
+Video bitrate : CRF 22 + maxrate 4M + bufsize 8M, x264 ref=2 bframes=2 (±3–4 Mbps)
 Audio codec   : AAC-LC, 48000 Hz, 2 channels, 160 kbps
 Container     : MP4, +faststart
 Duration      : identical to the master (A/V timing untouched)
@@ -43,9 +48,9 @@ Duration      : identical to the master (A/V timing untouched)
 ```bash
 ffmpeg -i 4fd_op_indo_master.mp4 ^
   -map 0:v:0 -map 0:a:0 ^
-  -vf "scale=1280:720:flags=lanczos" -fps_mode passthrough ^
-  -c:v libx264 -profile:v high -level 3.1 -preset slow -tune animation ^
-  -crf 21 -maxrate 4M -bufsize 8M -pix_fmt yuv420p ^
+  -fps_mode passthrough ^
+  -c:v libx264 -profile:v high -level 4.0 -preset medium -tune animation ^
+  -crf 22 -maxrate 4M -bufsize 8M -x264-params ref=2:bframes=2 -pix_fmt yuv420p ^
   -c:a aac -b:a 160k -ar 48000 -ac 2 ^
   -movflags +faststart ^
   -map_metadata -1 -fflags +bitexact -flags:v +bitexact -flags:a +bitexact ^
@@ -75,8 +80,10 @@ Notes:
   `start_time` = 0, consistent A/V durations, and **the game's own OP is also
   24 fps**. Quick check: if the stock Japanese OP also desyncs on Citron, the
   cause is 100% decode load (not the fps).
-- A 720p ~3–4 Mbps encode cuts the decode load >4× → frame drops disappear and
-  the lyrics sync again, without touching the timing.
+- **Verified on Citron (SD 6 Gen 1)**: dropping the bitrate 9.6 → ~3 Mbps with
+  the High profile + `ref=2` restored the lyric sync, without touching the
+  timing. Resolution stays 1080p — a test 720p video rendered small in the
+  top-left corner (the engine blits movies 1:1 with no scaling).
 
 ---
 
@@ -87,15 +94,15 @@ Notes:
   the DC4 base game on Switch runs the Shin engine and its OP plays without an
   fps cap.)
 - To test, there are two ways to build a **30 fps** variant from the 24 fps master:
-  - **Quick test (frame duplication, no artifacts, minutes to encode):** change the
-    filter to `scale=1280:720:flags=lanczos,fps=30` — enough to learn engine behavior.
+  - **Quick test (frame duplication, no artifacts, minutes to encode):** just add the
+    `fps=30` filter (no scale — resolution must stay 1080p).
   - **Quality (motion-compensated interpolation, slow to encode):**
 
 ```bash
 ffmpeg -i 4fd_op_indo_master.mp4 ^
-  -vf "scale=1280:720:flags=lanczos,minterpolate=fps=30:mi_mode=mci:scd=fdiff:scd_threshold=10" ^
-  -c:v libx264 -profile:v high -level 3.1 -preset slow -tune animation ^
-  -crf 21 -maxrate 4M -bufsize 8M -pix_fmt yuv420p ^
+  -vf "minterpolate=fps=30:mi_mode=mci:scd=fdiff:scd_threshold=10" ^
+  -c:v libx264 -profile:v high -level 4.0 -preset medium -tune animation ^
+  -crf 22 -maxrate 4M -bufsize 8M -x264-params ref=2:bframes=2 -pix_fmt yuv420p ^
   -c:a aac -b:a 160k -ar 48000 -ac 2 ^
   -movflags +faststart ^
   -map_metadata -1 -fflags +bitexact -flags:v +bitexact -flags:a +bitexact ^
