@@ -16,54 +16,103 @@ yang nanti dimasukkan ke patch mod (folder `Movie/`).
 | `asa_ed.mp4` / `hi_ed.mp4` (ED) | H.264 Main@L4.0, 1920x1080, 24 fps, ~0.9 Mbps | AAC-LC 48 kHz stereo ~195 kbps |
 | `pmove_l.mp4` (video sistem) | H.264 Main@L4.0, 1920x1080, 24 fps, ~20 Mbps | AAC-LC 48 kHz stereo ~117 kbps |
 
-Kesimpulan konsistensi: seluruh movie = **1920x1080, 24 fps, H.264 Main, yuv420p, AAC-LC 48 kHz stereo**.
+Kesimpulan konsistensi: seluruh movie bawaan = **1920x1080, 24 fps, H.264 Main, yuv420p, AAC-LC 48 kHz stereo**.
 
 ---
 
 ## Target Encode Wajib (video lirik pengganti `4fd_op.mp4`)
 
+> ⚠️ **Revisi v2 (Okt 2026).** Target lama (1080p, Main@L4.1, `-r 24` CFR,
+> ~9.8 Mbps) terbukti **terlalu berat untuk emulator di SoC mobile**
+> (Snapdragon 6 Gen 1 / Helio G99 pada Citron): decode-nya drop frame sehingga
+> lirik terasa telanjur dibanding audio. Target di bawah menggantikannya.
+
 ```
-Codec video   : H.264, profile Main, level 4.1
-Resolusi      : 1920x1080
+Codec video   : H.264, profile High, level 3.1
+Resolusi      : 1280x720 (engine meng-upscale ke layar; jauh lebih ringan didecode)
 Pixel format  : yuv420p
-Frame rate    : 24 fps (konstan, CFR)
-Bitrate video : sesuai kualitas sumber (lihat catatan bitrate di bawah)
-Codec audio   : AAC-LC, 48000 Hz, 2 channel (salin audio asli tanpa re-encode bila mungkin)
-Container     : MP4 (brand `mp42` atau `isom`)
-Duration      : sama dengan video asli (~100 detik; jangan diubah)
+Frame rate    : MENGIKUTI SUMBER — tanpa `-r`, tanpa paksaan CFR (`-fps_mode passthrough`)
+Bitrate video : CRF 21 + maxrate 4M + bufsize 8M (hasil ±3–4 Mbps untuk OP musikal)
+Codec audio   : AAC-LC, 48000 Hz, 2 channel, 160 kbps
+Container     : MP4, +faststart
+Duration      : sama dengan master (timing A/V tidak diubah sama sekali)
 ```
 
 ### Perintah ffmpeg siap pakai
 
 ```bash
-ffmpeg -i opening_lirik_indo_source.mp4 ^
-  -c:v libx264 -profile:v main -level 4.1 -pix_fmt yuv420p ^
-  -r 24 -b:v 9800k -maxrate 12000k -bufsize 24000k ^
-  -c:a aac -b:a 317k -ar 48000 -ac 2 ^
+ffmpeg -i 4fd_op_indo_master.mp4 ^
+  -map 0:v:0 -map 0:a:0 ^
+  -vf "scale=1280:720:flags=lanczos" -fps_mode passthrough ^
+  -c:v libx264 -profile:v high -level 3.1 -preset slow -tune animation ^
+  -crf 21 -maxrate 4M -bufsize 8M -pix_fmt yuv420p ^
+  -c:a aac -b:a 160k -ar 48000 -ac 2 ^
   -movflags +faststart ^
   -map_metadata -1 -fflags +bitexact -flags:v +bitexact -flags:a +bitexact ^
-  output_4fd_op.mp4
+  4fd_op_indo_light.mp4
 ```
 
 Catatan:
-- Jika audio diambil langsung dari `4fd_op.mp4` asli, salin saja: `-c:a copy`.
+- **Jangan pernah menambahkan `-r 24`** (atau filter `fps=24`) pada video lirik.
+  Timestamp sumber diteruskan apa adanya (`-fps_mode passthrough`) supaya
+  sinkronisasi lirik vs audio persis mengikuti master.
 - `-movflags +faststart` meniru struktur `ftyp|moov|mdat` milik `4fd_op.mp4` asli
   (moov di depan). Engine NeXAS Switch diketahui menerima keduanya (file ED asli
   memakai `isom|free|mdat|moov`), tapi mengikuti struktur file yang digantikan paling aman.
 - `-map_metadata -1` + `+bitexact` membuat output deterministik tanpa metadata encoder
   yang tidak diperlukan engine.
 
-### Bitrate mengikuti konten
+---
 
-| Konten | Saran bitrate video |
-|---|---|
-| Opening musikal (banyak gerak) | 8–10 Mbps (mengikuti asli ~9.8 Mbps) |
-| ED / adegan tenang | 1–2 Mbps |
-| Video sistem (loop pendek) | perlu gerak tinggi (asli ~20 Mbps) — hindari mengganti |
+## Kenapa Encode Lama Terasa Desinkron di Emulator (analisis v2)
+
+- File lama: 1080p ~9.6 Mbps Main@L4.1 → beban decode besar. Di emulator,
+  decoder video game berjalan di CPU bersama game + rendering; SoC entry-mid
+  tidak real-time → frame video terlewat → lirik (yang ter-burn ke gambar)
+  tampak makin telat dibanding audio.
+- Struktur file 24 fps CFR lama sendiri **benar**: A/V `start_time` = 0,
+  durasi A/V konsisten, dan **OP asli game juga 24 fps**. Uji cepat: kalau OP
+  Jepang bawaan juga desinkron di Citron, penyebabnya 100% beban decode (bukan fps).
+- Encode 720p ±3–4 Mbps memangkas beban decode >4× → frame drop hilang,
+  lirik kembali sinkron tanpa menyentuh timing.
 
 ---
 
-## Aturan Integrasi Patch
+## FPS di Atas 24 — Pengujian (opsional)
+
+- OP bawaan FD (NeXAS Switch) 24 fps; **belum ada bukti** apakah engine NeXAS FD
+  memaksa 24 fps atau mengikuti timestamp kontainer. (Pembanding: DC4 base game
+  Switch memakai engine Shin dan OP-nya jalan tanpa cap fps.)
+- Untuk menguji, tersedia dua cara membuat varian **30 fps** dari master 24 fps:
+  - **Tes cepat (duplikasi frame, tanpa artefak, encode menit):** ganti filter jadi
+    `scale=1280:720:flags=lanczos,fps=30` — cukup untuk mengetahui perilaku engine.
+  - **Kualitas (interpolasi motion-compensated, encode lama):**
+
+```bash
+ffmpeg -i 4fd_op_indo_master.mp4 ^
+  -vf "scale=1280:720:flags=lanczos,minterpolate=fps=30:mi_mode=mci:scd=fdiff:scd_threshold=10" ^
+  -c:v libx264 -profile:v high -level 3.1 -preset slow -tune animation ^
+  -crf 21 -maxrate 4M -bufsize 8M -pix_fmt yuv420p ^
+  -c:a aac -b:a 160k -ar 48000 -ac 2 ^
+  -movflags +faststart ^
+  -map_metadata -1 -fflags +bitexact -flags:v +bitexact -flags:a +bitexact ^
+  4fd_op_indo_30fps_test.mp4
+```
+
+- Cara membaca hasil tes di emulator:
+  - **30 fps mulus + lirik tetap sinkron** → engine mengikuti timestamp; boleh
+    pakai varian 30 fps. 60 fps tidak disarankan untuk SoC target (beban decode
+    2,5× dari 24 fps; 30–50 fps pilihan realistis).
+  - **Video melar / lirik makin telat** → engine memaksa 24 fps; pakai varian
+    24 fps (file utama), buang varian fps tinggi.
+  - **30 fps tersendat** (terutama Helio G99) → tetap pakai 24 fps; beban decode
+    +25% dari 24 fps cukup terasa di SoC 4 core besar.
+- Varian 60 fps (`minterpolate=fps=60`, level 3.2) hanya masuk akal kalau tes
+  30 fps lolos **dan** device-nya kuat.
+
+---
+
+## Patch Integration Rules
 
 1. Nama file **harus persis** `4fd_op.mp4` (engine memuat berdasarkan path RomFS `Movie/4fd_op.mp4`).
 2. Ditempatkan di patch LayeredFS: `romfs/Movie/4fd_op.mp4` → meng-override file asli.
